@@ -8,7 +8,7 @@ import java.util.List;
 public class TradingPlan {
     private final List<Order> orders = new ArrayList<>();
 
-    public void addTransaction(@Nonnull Order order) {
+    public void addOrder(@Nonnull Order order) {
         orders.add(order);
     }
 
