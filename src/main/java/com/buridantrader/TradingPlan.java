@@ -6,14 +6,14 @@ import java.util.Collections;
 import java.util.List;
 
 public class TradingPlan {
-    private final List<Transaction> transactions = new ArrayList<>();
+    private final List<Order> orders = new ArrayList<>();
 
-    public void addTransaction(@Nonnull Transaction transaction) {
-        transactions.add(transaction);
+    public void addTransaction(@Nonnull Order order) {
+        orders.add(order);
     }
 
     @Nonnull
-    public List<Transaction> getTransactions() {
-        return Collections.unmodifiableList(transactions);
+    public List<Order> getOrders() {
+        return Collections.unmodifiableList(orders);
     }
 }
