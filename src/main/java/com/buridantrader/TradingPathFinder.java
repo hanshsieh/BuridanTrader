@@ -24,21 +24,19 @@ public class TradingPathFinder {
     }
 
     private void resolvePaths(@Nonnull Collection<Symbol> symbols) {
-        resolveDirectPath(symbols);
+        resolveDirectPaths(symbols);
 
         // Floyd-Warshall
         Set<Currency> currencies = pathGraph.keySet();
         for (Currency midCurrency : currencies) {
             for (Currency sourceCurrency : currencies) {
                 for (Currency targetCurrency : currencies) {
-                    Entry firstEntry = pathGraph.getOrDefault(sourceCurrency, Collections.emptyMap())
-                            .get(midCurrency);
-                    Entry secondEntry = pathGraph.getOrDefault(midCurrency, Collections.emptyMap())
-                            .get(targetCurrency);
+                    Entry firstEntry = pathGraph.get(sourceCurrency).get(midCurrency);
+                    Entry secondEntry = pathGraph.get(midCurrency).get(targetCurrency);
                     if (firstEntry == null || secondEntry == null) {
                         continue;
                     }
-                    Map<Currency, Entry> map = pathGraph.computeIfAbsent(sourceCurrency, (c) -> new HashMap<>());
+                    Map<Currency, Entry> map = pathGraph.get(sourceCurrency);
                     Entry oriEntry = map.get(targetCurrency);
                     int newLength = firstEntry.length + secondEntry.length;
                     if (oriEntry == null) {
@@ -56,15 +54,21 @@ public class TradingPathFinder {
         }
     }
 
-    private void resolveDirectPath(@Nonnull Collection<Symbol> symbols) {
+    private void resolveDirectPaths(@Nonnull Collection<Symbol> symbols) {
         symbols.forEach((symbol) -> {
             Currency baseCurrency = symbol.getBaseCurrency();
             Currency quoteCurrency = symbol.getQuoteCurrency();
-            pathGraph.computeIfAbsent(baseCurrency, (c) -> new HashMap<>())
-                    .put(quoteCurrency, new Entry(symbol, quoteCurrency, 1));
-            pathGraph.computeIfAbsent(quoteCurrency, (c) -> new HashMap<>())
-                    .put(baseCurrency, new Entry(symbol, baseCurrency, 1));
+            addDirectPath(baseCurrency, quoteCurrency, symbol);
+            addDirectPath(quoteCurrency, baseCurrency, symbol);
         });
+    }
+
+    private void addDirectPath(
+            @Nonnull Currency currency1,
+            @Nonnull Currency currency2,
+            @Nonnull Symbol symbol) {
+        pathGraph.computeIfAbsent(currency1, (c) -> new HashMap<>())
+                .put(currency2, new Entry(symbol, currency2, 1));
     }
 
 }
