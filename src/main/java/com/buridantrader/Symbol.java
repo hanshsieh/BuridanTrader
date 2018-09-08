@@ -1,21 +1,26 @@
 package com.buridantrader;
 
 import javax.annotation.Nonnull;
-import java.math.BigDecimal;
+import javax.annotation.concurrent.Immutable;
+import javax.annotation.concurrent.ThreadSafe;
 import java.util.Objects;
 
+@ThreadSafe
+@Immutable
 public class Symbol {
     private final Currency baseCurrency;
     private final Currency quoteCurrency;
-    private final BigDecimal minOrderQuantity;
 
     public Symbol(
             @Nonnull Currency baseCurrency,
-            @Nonnull Currency quoteCurrency,
-            @Nonnull BigDecimal minOrderQuantity) {
+            @Nonnull Currency quoteCurrency) {
         this.baseCurrency = baseCurrency;
         this.quoteCurrency = quoteCurrency;
-        this.minOrderQuantity = minOrderQuantity;
+    }
+
+    @Nonnull
+    public String getName() {
+        return baseCurrency.getName() + quoteCurrency.getName();
     }
 
     @Nonnull
@@ -28,11 +33,6 @@ public class Symbol {
         return quoteCurrency;
     }
 
-    @Nonnull
-    public BigDecimal getMinOrderQuantity() {
-        return minOrderQuantity;
-    }
-
     @Override
     public boolean equals(Object other) {
         if (this == other) {
@@ -43,12 +43,16 @@ public class Symbol {
         }
         Symbol that = (Symbol) other;
         return baseCurrency.equals(that.baseCurrency) &&
-                quoteCurrency.equals(that.quoteCurrency) &&
-                minOrderQuantity.equals(that.minOrderQuantity);
+                quoteCurrency.equals(that.quoteCurrency);
     }
 
     @Override
     public int hashCode() {
-        return Objects.hash(baseCurrency, quoteCurrency, minOrderQuantity);
+        return Objects.hash(baseCurrency, quoteCurrency);
+    }
+
+    @Override
+    public String toString() {
+        return getName();
     }
 }

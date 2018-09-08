@@ -1,33 +1,22 @@
 package com.buridantrader;
 
+import jdk.nashorn.internal.ir.annotations.Immutable;
+
 import javax.annotation.Nonnull;
+import javax.annotation.concurrent.ThreadSafe;
 import java.math.BigDecimal;
 
+@ThreadSafe
+@Immutable
 public class Order {
-    private final Currency baseCurrency;
-    private final Currency quoteCurrency;
+    private final OrderSpec orderSpec;
     private final BigDecimal quantity;
-    private final OrderSide orderSide;
 
     public Order(
-            @Nonnull Currency baseCurrency,
-            @Nonnull Currency quoteCurrency,
-            @Nonnull BigDecimal quantity,
-            @Nonnull OrderSide orderSide) {
-        this.baseCurrency = baseCurrency;
-        this.quoteCurrency = quoteCurrency;
+            @Nonnull OrderSpec orderSpec,
+            @Nonnull BigDecimal quantity) {
+        this.orderSpec = orderSpec;
         this.quantity = quantity;
-        this.orderSide = orderSide;
-    }
-
-    @Nonnull
-    public Currency getBaseCurrency() {
-        return baseCurrency;
-    }
-
-    @Nonnull
-    public Currency getQuoteCurrency() {
-        return quoteCurrency;
     }
 
     @Nonnull
@@ -36,7 +25,7 @@ public class Order {
     }
 
     @Nonnull
-    public OrderSide getOrderSide() {
-        return orderSide;
+    public OrderSpec getOrderSpec() {
+        return orderSpec;
     }
 }

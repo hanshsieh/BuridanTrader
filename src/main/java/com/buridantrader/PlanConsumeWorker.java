@@ -59,11 +59,12 @@ public class PlanConsumeWorker implements Runnable {
     }
 
     private void executeOrder(@Nonnull Order order) throws IOException {
-        String symbol = createSymbol(order.getBaseCurrency(), order.getQuoteCurrency());
-        com.binance.api.client.domain.OrderSide orderSide = createOrderSide(order.getOrderSide());
+        OrderSpec orderSpec = order.getOrderSpec();
+        Symbol symbol = orderSpec.getSymbol();
+        com.binance.api.client.domain.OrderSide orderSide = createOrderSide(orderSpec.getOrderSide());
         String quantity = order.getQuantity().toPlainString();
         NewOrder newOrder = new NewOrder(
-            symbol,
+            symbol.getName(),
             orderSide,
             OrderType.MARKET,
             null,
