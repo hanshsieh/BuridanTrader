@@ -1,0 +1,15 @@
+package com.buridantrader;
+
+import javax.annotation.Nonnull;
+
+public class System {
+
+    @Nonnull
+    public Thread currentThread() {
+        return Thread.currentThread();
+    }
+
+    public void sleep(long milliseconds) throws InterruptedException {
+        Thread.sleep(milliseconds);
+    }
+}
