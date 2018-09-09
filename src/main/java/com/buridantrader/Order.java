@@ -5,6 +5,7 @@ import jdk.nashorn.internal.ir.annotations.Immutable;
 import javax.annotation.Nonnull;
 import javax.annotation.concurrent.ThreadSafe;
 import java.math.BigDecimal;
+import java.util.Objects;
 
 @ThreadSafe
 @Immutable
@@ -27,5 +28,25 @@ public class Order {
     @Nonnull
     public OrderSpec getOrderSpec() {
         return orderSpec;
+    }
+
+    @Override
+    public boolean equals(Object other) {
+        if (this == other) {
+            return true;
+        }
+
+        if (other == null || !getClass().equals(other.getClass())) {
+            return false;
+        }
+
+        Order that = (Order) other;
+        return orderSpec.equals(that.orderSpec)
+                && quantity.equals(that.quantity);
+    }
+
+    @Override
+    public int hashCode() {
+        return Objects.hash(orderSpec, quantity);
     }
 }

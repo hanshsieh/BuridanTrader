@@ -10,9 +10,9 @@ import javax.annotation.Nonnull;
 import java.io.IOException;
 import java.util.Optional;
 
-public class PlanConsumeWorker implements Runnable {
+public class PlanWorker implements Runnable {
 
-    private static final Logger LOGGER = LoggerFactory.getLogger(PlanConsumeWorker.class);
+    private static final Logger LOGGER = LoggerFactory.getLogger(PlanWorker.class);
 
     private static final long FAILURE_DELAY_MS = 3000;
 
@@ -20,11 +20,21 @@ public class PlanConsumeWorker implements Runnable {
 
     private final BinanceApiRestClient client;
 
-    public PlanConsumeWorker(
+    private final System system;
+
+    public PlanWorker(
             @Nonnull TradingPlanner planner,
             @Nonnull BinanceApiRestClient client) {
+        this(planner, client, new System());
+    }
+
+    public PlanWorker(
+            @Nonnull TradingPlanner planner,
+            @Nonnull BinanceApiRestClient client,
+            @Nonnull System system) {
         this.planner = planner;
         this.client = client;
+        this.system = system;
     }
 
     @Override
@@ -34,14 +44,15 @@ public class PlanConsumeWorker implements Runnable {
             try {
                 executePlan(optPlan.get());
             } catch (Exception ex) {
-                LOGGER.error("Fail to execute the plan, skipping it", ex);
+                LOGGER.error("Fail to execute the plan, skipping it and sleep a while", ex);
+                sleep();
             }
         }
     }
 
     @Nonnull
     private Optional<TradingPlan> getNextPlan() {
-        while (!Thread.currentThread().isInterrupted()) {
+        while (!system.currentThread().isInterrupted()) {
             try {
                 return Optional.of(planner.nextPlan());
             } catch (Exception ex) {
@@ -72,15 +83,10 @@ public class PlanConsumeWorker implements Runnable {
         );
         try {
             LOGGER.info("Placing an order. symbol={}, orderSide={}, quantity={}", symbol, orderSide, quantity);
-            client.newOrderTest(newOrder);
+            client.newOrder(newOrder);
         } catch (Exception ex) {
             throw new IOException("Fail to execute order", ex);
         }
-    }
-
-    @Nonnull
-    private String createSymbol(@Nonnull Currency baseCurrency, @Nonnull Currency quoteCurrency) {
-        return baseCurrency.getName() + quoteCurrency.getName();
     }
 
     @Nonnull
@@ -95,11 +101,11 @@ public class PlanConsumeWorker implements Runnable {
 
     private void sleep() {
         try {
-            Thread.sleep(FAILURE_DELAY_MS);
+            system.sleep(FAILURE_DELAY_MS);
         } catch (InterruptedException ex) {
 
             // Recover the interrupted state
-            Thread.currentThread().interrupt();
+            system.currentThread().interrupt();
         }
     }
 }
