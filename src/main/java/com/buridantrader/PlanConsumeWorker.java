@@ -3,6 +3,7 @@ package com.buridantrader;
 import com.binance.api.client.BinanceApiRestClient;
 import com.binance.api.client.domain.OrderType;
 import com.binance.api.client.domain.account.NewOrder;
+import com.binance.api.client.domain.account.NewOrderResponse;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -72,15 +73,10 @@ public class PlanConsumeWorker implements Runnable {
         );
         try {
             LOGGER.info("Placing an order. symbol={}, orderSide={}, quantity={}", symbol, orderSide, quantity);
-            client.newOrderTest(newOrder);
+            client.newOrder(newOrder);
         } catch (Exception ex) {
             throw new IOException("Fail to execute order", ex);
         }
-    }
-
-    @Nonnull
-    private String createSymbol(@Nonnull Currency baseCurrency, @Nonnull Currency quoteCurrency) {
-        return baseCurrency.getName() + quoteCurrency.getName();
     }
 
     @Nonnull

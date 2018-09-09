@@ -3,8 +3,10 @@ package com.buridantrader;
 import com.binance.api.client.BinanceApiRestClient;
 
 import javax.annotation.Nonnull;
+import javax.annotation.concurrent.ThreadSafe;
 import java.util.concurrent.*;
 
+@ThreadSafe
 public class PlanConsumer {
     private final ExecutorService executor = Executors.newSingleThreadExecutor();
     private final TradingPlanner planner;
@@ -29,8 +31,14 @@ public class PlanConsumer {
         if (workerFuture == null) {
             return;
         }
+
+        // Stop accepting new tasks and waiting tasks
         executor.shutdownNow();
+
+        // Try to stop the running task
         workerFuture.cancel(true);
+
+        // Wait for termination
         executor.awaitTermination(timeout, timeUnit);
         workerFuture = null;
     }
