@@ -1,5 +1,7 @@
 package com.buridantrader;
 
+import com.sun.javaws.exceptions.InvalidArgumentException;
+
 import javax.annotation.Nonnull;
 import javax.annotation.concurrent.ThreadSafe;
 import java.io.IOException;
@@ -82,18 +84,18 @@ public class TradingPathFinder {
                 nextQuantity = orderQuantity;
             }
 
-            Optional<Order> optOrder = symbolInfo.getQuantityFormalizer()
-                    .formalize(orderQuantity, RoundingMode.DOWN)
-                    .map(formalizedQuantity -> new Order(
-                        orderSpec,
-                        formalizedQuantity));
 
-            if (optOrder.isPresent()) {
-                orders.add(optOrder.get());
-                nowQuantity = nextQuantity;
-            } else {
+            BigDecimal formalizedQuantity;
+            try {
+                formalizedQuantity = symbolInfo.getQuantityFormalizer()
+                        .formalize(orderQuantity, RoundingMode.DOWN);
+            } catch (IllegalArgumentException ex) {
                 return Optional.empty();
             }
+            Order order = new Order(orderSpec, formalizedQuantity);
+
+            orders.add(order);
+            nowQuantity = nextQuantity;
         }
         return Optional.of(orders);
     }
