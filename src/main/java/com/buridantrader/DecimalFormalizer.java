@@ -5,7 +5,6 @@ import javax.annotation.concurrent.Immutable;
 import javax.annotation.concurrent.ThreadSafe;
 import java.math.BigDecimal;
 import java.math.RoundingMode;
-import java.util.Optional;
 
 @ThreadSafe
 @Immutable
@@ -31,16 +30,25 @@ public class DecimalFormalizer {
         this.stepSize = stepSize.stripTrailingZeros();
     }
 
+    /**
+     * Formalize the given value.
+     *
+     * @param oldValue Old value.
+     * @param roundingMode Rouding mode.
+     * @return Formalized value.
+     *
+     * @throws IllegalArgumentException The value is out of min or max value.
+     */
     @Nonnull
-    public Optional<BigDecimal> formalize(
+    public BigDecimal formalize(
             @Nonnull BigDecimal oldValue,
-            @Nonnull RoundingMode roundingMode) {
+            @Nonnull RoundingMode roundingMode) throws IllegalArgumentException {
         BigDecimal numSteps = oldValue.subtract(minValue).
                 divide(stepSize, 0, roundingMode);
         BigDecimal newValue = numSteps.multiply(stepSize).add(minValue);
         if (newValue.compareTo(maxValue) > 0 || newValue.compareTo(minValue) < 0) {
-            return Optional.empty();
+            throw new IllegalArgumentException("Value " + oldValue + " out of min or max value");
         }
-        return Optional.of(newValue.stripTrailingZeros());
+        return newValue.stripTrailingZeros();
     }
 }

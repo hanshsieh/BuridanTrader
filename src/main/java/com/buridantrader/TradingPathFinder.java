@@ -73,27 +73,27 @@ public class TradingPathFinder {
 
             BigDecimal orderQuantity;
             BigDecimal nextQuantity;
-            int scale = getQuantityStepScale(symbolInfo);
             if (OrderSide.SELL.equals(orderSpec.getOrderSide())) {
                 orderQuantity = nowQuantity;
                 nextQuantity = nowQuantity.multiply(price);
             } else {
+                int scale = getQuantityStepScale(symbolInfo);
                 orderQuantity = nowQuantity.divide(price, scale, RoundingMode.DOWN);
                 nextQuantity = orderQuantity;
             }
 
-            Optional<Order> optOrder = symbolInfo.getQuantityFormalizer()
-                    .formalize(orderQuantity, RoundingMode.DOWN)
-                    .map(formalizedQuantity -> new Order(
-                        orderSpec,
-                        formalizedQuantity));
 
-            if (optOrder.isPresent()) {
-                orders.add(optOrder.get());
-                nowQuantity = nextQuantity;
-            } else {
+            BigDecimal formalizedQuantity;
+            try {
+                formalizedQuantity = symbolInfo.getQuantityFormalizer()
+                        .formalize(orderQuantity, RoundingMode.DOWN);
+            } catch (IllegalArgumentException ex) {
                 return Optional.empty();
             }
+            Order order = new Order(orderSpec, formalizedQuantity);
+
+            orders.add(order);
+            nowQuantity = nextQuantity;
         }
         return Optional.of(orders);
     }

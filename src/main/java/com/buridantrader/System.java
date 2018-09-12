@@ -12,4 +12,8 @@ public class System {
     public void sleep(long milliseconds) throws InterruptedException {
         Thread.sleep(milliseconds);
     }
+
+    public long currentTimeMillis() {
+        return java.lang.System.currentTimeMillis();
+    }
 }
