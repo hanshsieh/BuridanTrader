@@ -1,7 +1,5 @@
 package com.buridantrader;
 
-import com.sun.javaws.exceptions.InvalidArgumentException;
-
 import javax.annotation.Nonnull;
 import javax.annotation.concurrent.ThreadSafe;
 import java.io.IOException;
@@ -75,11 +73,11 @@ public class TradingPathFinder {
 
             BigDecimal orderQuantity;
             BigDecimal nextQuantity;
-            int scale = getQuantityStepScale(symbolInfo);
             if (OrderSide.SELL.equals(orderSpec.getOrderSide())) {
                 orderQuantity = nowQuantity;
                 nextQuantity = nowQuantity.multiply(price);
             } else {
+                int scale = getQuantityStepScale(symbolInfo);
                 orderQuantity = nowQuantity.divide(price, scale, RoundingMode.DOWN);
                 nextQuantity = orderQuantity;
             }

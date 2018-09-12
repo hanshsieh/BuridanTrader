@@ -38,7 +38,7 @@ public class Symbol {
         if (this == other) {
             return true;
         }
-        if (!(other instanceof Symbol)) {
+        if (other == null || !getClass().equals(other.getClass())) {
             return false;
         }
         Symbol that = (Symbol) other;

@@ -5,7 +5,6 @@ import javax.annotation.concurrent.Immutable;
 import javax.annotation.concurrent.ThreadSafe;
 import java.math.BigDecimal;
 import java.math.RoundingMode;
-import java.util.Optional;
 
 @ThreadSafe
 @Immutable
