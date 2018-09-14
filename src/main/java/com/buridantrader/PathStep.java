@@ -38,10 +38,11 @@ public class PathStep {
      */
     @Nonnull
     public Currency getNextCurrency(@Nonnull Currency nowCurrency) throws IllegalArgumentException {
-        if (nowCurrency.equals(symbolToNext.getBaseCurrency())) {
-            return symbolToNext.getQuoteCurrency();
-        } else if (nowCurrency.equals(symbolToNext.getQuoteCurrency())) {
-            return symbolToNext.getBaseCurrency();
+        Symbol symbol = getSymbolToNext();
+        if (nowCurrency.equals(symbol.getBaseCurrency())) {
+            return symbol.getQuoteCurrency();
+        } else if (nowCurrency.equals(symbol.getQuoteCurrency())) {
+            return symbol.getBaseCurrency();
         } else {
             throw new IllegalArgumentException("The given currency " + nowCurrency
                     + " isn't base nor quote currency of the symbol");
