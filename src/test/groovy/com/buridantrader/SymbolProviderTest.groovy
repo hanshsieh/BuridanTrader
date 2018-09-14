@@ -1,6 +1,7 @@
 package com.buridantrader
 
 import spock.lang.Specification
+import spock.lang.Unroll
 
 import java.time.Instant
 
@@ -140,6 +141,7 @@ class SymbolProviderTest extends Specification {
         result == symbolInfos
     }
 
+    @Unroll
     def "get symbol info"() {
         given:
         def symbolInfos = [
