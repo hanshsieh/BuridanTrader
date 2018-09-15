@@ -12,26 +12,33 @@ import java.util.stream.Collectors;
 @ThreadSafe
 public class TradingPathFinder {
 
-    // Be careful the referenced instance may be changed by other threads
     private final ShortestPathsResolver shortestPathsResolver;
     private final SymbolPriceProvider symbolPriceProvider;
     private final SymbolProvider symbolProvider;
+    private final System system;
+
+    // Be careful the referenced instance may be changed by other threads
     private Instant lastUpdateTime;
     private TradingPaths tradingPaths;
 
     public TradingPathFinder(
             @Nonnull SymbolProvider symbolProvider,
             @Nonnull SymbolPriceProvider symbolPriceProvider) {
-        this(symbolProvider, symbolPriceProvider, new ShortestPathsResolver());
+        this(symbolProvider,
+            symbolPriceProvider,
+            new ShortestPathsResolver(),
+            new System());
     }
 
     public TradingPathFinder(
             @Nonnull SymbolProvider symbolProvider,
             @Nonnull SymbolPriceProvider symbolPriceProvider,
-            @Nonnull ShortestPathsResolver shortestPathsResolver) {
+            @Nonnull ShortestPathsResolver shortestPathsResolver,
+            @Nonnull System system) {
         this.symbolPriceProvider = symbolPriceProvider;
         this.symbolProvider = symbolProvider;
         this.shortestPathsResolver = shortestPathsResolver;
+        this.system = system;
     }
 
     @Nonnull
@@ -69,20 +76,9 @@ public class TradingPathFinder {
         List<Order> orders = new ArrayList<>(orderSpecs.size());
         BigDecimal nowQuantity = quantity;
         for (OrderSpec orderSpec : orderSpecs) {
+            BigDecimal price = getPriceForSymbol(orderSpec.getSymbol());
             SymbolInfo symbolInfo = getSymbolInfo(orderSpec.getSymbol());
-            BigDecimal price = getPriceForSymbol(symbolInfo.getSymbol());
-
-            BigDecimal orderQuantity;
-            BigDecimal nextQuantity;
-            if (OrderSide.SELL.equals(orderSpec.getOrderSide())) {
-                orderQuantity = nowQuantity;
-                nextQuantity = nowQuantity.multiply(price);
-            } else {
-                int scale = getQuantityStepScale(symbolInfo);
-                orderQuantity = nowQuantity.divide(price, scale, RoundingMode.DOWN);
-                nextQuantity = orderQuantity;
-            }
-
+            BigDecimal orderQuantity = calOrderQuantity(nowQuantity, orderSpec, symbolInfo, price);
 
             BigDecimal formalizedQuantity;
             try {
@@ -94,9 +90,36 @@ public class TradingPathFinder {
             Order order = new Order(orderSpec, formalizedQuantity);
 
             orders.add(order);
-            nowQuantity = nextQuantity;
+
+            nowQuantity = calNextQuantity(order, price);
         }
         return Optional.of(orders);
+    }
+
+    @Nonnull
+    private BigDecimal calOrderQuantity(
+            @Nonnull BigDecimal nowQuantity,
+            @Nonnull OrderSpec orderSpec,
+            @Nonnull SymbolInfo symbolInfo,
+            @Nonnull BigDecimal price) {
+        if (OrderSide.SELL.equals(orderSpec.getOrderSide())) {
+            return nowQuantity;
+        } else {
+            int scale = getQuantityStepScale(symbolInfo);
+            return nowQuantity.divide(price, scale, RoundingMode.DOWN);
+        }
+    }
+
+    @Nonnull
+    private BigDecimal calNextQuantity(
+            @Nonnull Order order,
+            @Nonnull BigDecimal price) {
+        BigDecimal orderQuantity = order.getQuantity();
+        if (OrderSide.SELL.equals(order.getOrderSpec().getOrderSide())) {
+            return orderQuantity.multiply(price);
+        } else {
+            return orderQuantity;
+        }
     }
 
     @Nonnull
@@ -117,7 +140,7 @@ public class TradingPathFinder {
                     symbolProvider.getAllSymbolInfos().stream()
                             .map(SymbolInfo::getSymbol)
                             .collect(Collectors.toList()));
-            lastUpdateTime = Instant.now();
+            lastUpdateTime = Instant.ofEpochMilli(system.currentTimeMillis());
         }
     }
 
