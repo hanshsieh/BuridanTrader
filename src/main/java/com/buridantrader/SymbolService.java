@@ -1,73 +1,79 @@
 package com.buridantrader;
 
-import com.binance.api.client.BinanceApiRestClient;
-import com.binance.api.client.domain.general.ExchangeInfo;
-import com.binance.api.client.domain.general.FilterType;
-import com.binance.api.client.domain.general.SymbolFilter;
-import com.binance.api.client.domain.general.SymbolStatus;
+import com.google.common.collect.ImmutableList;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
 import javax.annotation.Nonnull;
+import javax.annotation.concurrent.ThreadSafe;
 import java.io.IOException;
-import java.math.BigDecimal;
-import java.util.ArrayList;
-import java.util.List;
-import java.util.Optional;
+import java.time.Instant;
+import java.util.*;
 
+@ThreadSafe
 public class SymbolService {
     private static final Logger LOGGER = LoggerFactory.getLogger(SymbolService.class);
-    private final BinanceApiRestClient client;
+    private static final long REFRESH_MS = 1000 * 60 * 10;
+    private final System system;
+    private final SymbolFetcher symbolFetcher;
+    private Map<String, SymbolInfo> symbolMap;
+    private Instant lastRefreshTime;
+    private Instant timeOfVersion;
 
-    public SymbolService(@Nonnull BinanceApiRestClient client) {
-        this.client = client;
+    public SymbolService(@Nonnull SymbolFetcher symbolFetcher) {
+        this(symbolFetcher, new System());
+    }
+
+    public SymbolService(@Nonnull SymbolFetcher symbolFetcher,
+                         @Nonnull System system) {
+        this.symbolFetcher = symbolFetcher;
+        this.system = system;
     }
 
     @Nonnull
-    public List<SymbolInfo> getSymbolInfos() throws IOException {
-        List<SymbolInfo> symbolInfos = new ArrayList<>();
-        ExchangeInfo exchangeInfo;
-        try {
-            exchangeInfo = client.getExchangeInfo();
-        } catch (Exception ex) {
-            throw new IOException("Fail to get exchange information", ex);
+    public synchronized Optional<SymbolInfo> getSymbolInfoByName(@Nonnull String name) throws IOException {
+        checkFreshness();
+        return Optional.ofNullable(symbolMap.get(name));
+    }
+
+    @Nonnull
+    public Optional<SymbolInfo> getSymbolInfo(@Nonnull Symbol symbol) throws IOException {
+        Optional<SymbolInfo> optSymbolInfo = getSymbolInfoByName(symbol.getName());
+        return optSymbolInfo.filter((info) -> info.getSymbol().equals(symbol));
+    }
+
+    @Nonnull
+    public synchronized Collection<SymbolInfo> getAllSymbolInfos() throws IOException {
+        checkFreshness();
+        return ImmutableList.copyOf(symbolMap.values());
+    }
+
+    public boolean isUpdatedSince(@Nonnull Instant time) {
+        return timeOfVersion == null || time.isBefore(timeOfVersion);
+    }
+
+    private void checkFreshness() throws IOException {
+        if (shouldRefresh()) {
+            LOGGER.info("Refreshing symbols");
+            Map<String, SymbolInfo> newSymbolMap = new HashMap<>();
+            List<SymbolInfo> symbolInfos = symbolFetcher.getSymbolInfos();
+            for (SymbolInfo symbolInfo : symbolInfos) {
+                newSymbolMap.put(symbolInfo.getSymbol().getName(), symbolInfo);
+            }
+            lastRefreshTime = Instant.ofEpochMilli(system.currentTimeMillis());
+            LOGGER.info("Symbols are refreshed");
+            if (symbolMap != null && symbolMap.equals(newSymbolMap)) {
+                LOGGER.info("Symbols are not changed");
+                return;
+            }
+            symbolMap = newSymbolMap;
+            timeOfVersion = lastRefreshTime;
         }
-        exchangeInfo.getSymbols().forEach((symbolInfo -> {
-
-            if (!SymbolStatus.TRADING.equals(symbolInfo.getStatus())) {
-                LOGGER.debug("Symbol {} not in TRADING status. Skip it.",
-                        symbolInfo.getSymbol());
-                return;
-            }
-
-            Optional<SymbolFilter> optLotSizeFilter = getLotSizeSymbolFilter(symbolInfo);
-            if (!optLotSizeFilter.isPresent()) {
-                LOGGER.debug("Symbol {} doesn't have LOT_SIZE or PRICE_FILTER filter. Skip it.",
-                        symbolInfo.getSymbol());
-                return;
-            }
-            SymbolFilter lotSizeFilter = optLotSizeFilter.get();
-
-            BigDecimal minQuantity = new BigDecimal(lotSizeFilter.getMinQty());
-            BigDecimal maxQuantity = new BigDecimal(lotSizeFilter.getMaxQty());
-            BigDecimal quantityStepSize = new BigDecimal(lotSizeFilter.getStepSize());
-
-            Currency baseCurrency = new Currency(symbolInfo.getBaseAsset());
-            Currency quoteCurrency = new Currency(symbolInfo.getQuoteAsset());
-            symbolInfos.add(new SymbolInfo(
-                    new Symbol(baseCurrency, quoteCurrency),
-                    minQuantity,
-                    maxQuantity,
-                    quantityStepSize));
-        }));
-        return symbolInfos;
     }
 
-    @Nonnull
-    private Optional<SymbolFilter> getLotSizeSymbolFilter(
-            @Nonnull com.binance.api.client.domain.general.SymbolInfo symbolInfo) {
-        return symbolInfo.getFilters().stream()
-                .filter((f) -> FilterType.LOT_SIZE.equals(f.getFilterType()))
-                .findFirst();
+    private boolean shouldRefresh() {
+        return lastRefreshTime == null
+                || system.currentTimeMillis() > lastRefreshTime.toEpochMilli() + REFRESH_MS;
     }
+
 }

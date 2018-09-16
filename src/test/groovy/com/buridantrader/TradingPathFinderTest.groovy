@@ -7,8 +7,8 @@ import java.time.Instant
 
 class TradingPathFinderTest extends Specification {
 
-    def symbolProvider = Mock(SymbolProvider)
-    def symbolPriceProvider = Mock(SymbolPriceProvider)
+    def symbolProvider = Mock(SymbolService)
+    def symbolPriceProvider = Mock(SymbolPriceService)
     def shortestPathsResolver = Mock(ShortestPathsResolver)
     def system = Mock(System)
     def tradingPathFinder = new TradingPathFinder(symbolProvider, symbolPriceProvider, shortestPathsResolver, system)
