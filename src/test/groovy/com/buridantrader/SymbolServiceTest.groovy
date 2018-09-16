@@ -1,81 +1,167 @@
 package com.buridantrader
 
-import com.binance.api.client.BinanceApiRestClient
-import com.binance.api.client.domain.general.ExchangeInfo
-import com.binance.api.client.domain.general.FilterType
-import com.binance.api.client.domain.general.SymbolFilter
-import com.binance.api.client.domain.general.SymbolStatus
 import spock.lang.Specification
+
+import java.time.Instant
 
 class SymbolServiceTest extends Specification {
 
-    def client = Mock(BinanceApiRestClient)
-    SymbolService service
+    def symbolFetcher = Mock(SymbolFetcher)
+    def system = Mock(System)
+    SymbolService symbolService = new SymbolService(symbolFetcher, system)
 
-    def setup() {
-        service = new SymbolService(client)
+    def "get symbol by name"() {
+        given:
+        def symbolInfosV1 = [
+            new SymbolInfo(
+                    new Symbol(new Currency("BTC"), new Currency("USDT")),
+                    new BigDecimal("0.012"),
+                    new BigDecimal("100000.0"),
+                    new BigDecimal("0.01")),
+            new SymbolInfo(
+                    new Symbol(new Currency("ETH"), new Currency("BTC")),
+                    new BigDecimal("0.013"),
+                    new BigDecimal("200000.0"),
+                    new BigDecimal("0.02"))
+        ]
+        def symbolInfosV2 = [
+                new SymbolInfo(
+                        new Symbol(new Currency("BTC"), new Currency("USDT")),
+                        new BigDecimal("0.012"),
+                        new BigDecimal("100000.0"),
+                        new BigDecimal("0.01")),
+                new SymbolInfo(
+                        new Symbol(new Currency("ETH"), new Currency("BTC")),
+                        new BigDecimal("0.013"),
+                        new BigDecimal("200000.0"),
+                        new BigDecimal("0.02")),
+                new SymbolInfo(
+                        new Symbol(new Currency("ETH"), new Currency("USDT")),
+                        new BigDecimal("0.014"),
+                        new BigDecimal("200000.1"),
+                        new BigDecimal("0.03"))
+        ]
+
+        when:
+        // Initially, always say "updated"
+        def updated = symbolService.isUpdatedSince(Instant.ofEpochMilli(1000))
+
+        then:
+        updated
+
+        when:
+        def symbolInfo = symbolService.getSymbolInfoByName("BTCUSDT")
+
+        then:
+        1 * system.currentTimeMillis() >> 1000
+        1 * symbolFetcher.getSymbolInfos() >> symbolInfosV1
+        symbolInfo.get().symbol.name == "BTCUSDT"
+
+        when:
+        updated = symbolService.isUpdatedSince(Instant.ofEpochMilli(999))
+
+        then:
+        updated
+
+        when:
+        updated = symbolService.isUpdatedSince(Instant.ofEpochMilli(1000))
+
+        then:
+        !updated
+
+        when:
+        // Not yet passing expiration time, should not refresh
+        symbolInfo = symbolService.getSymbolInfoByName("ETHBTC")
+
+        then:
+        1 * system.currentTimeMillis() >> 601000
+        0 * symbolFetcher.getSymbolInfos()
+        symbolInfo.get().symbol.name == "ETHBTC"
+
+        when:
+        updated = symbolService.isUpdatedSince(Instant.ofEpochMilli(1000))
+
+        then:
+        !updated
+
+        when:
+        // Passing expiration time, should refresh
+        symbolInfo = symbolService.getSymbolInfoByName("ETHUSDT")
+
+        then:
+        2 * system.currentTimeMillis() >>> [601001, 601011]
+        1 * symbolFetcher.getSymbolInfos() >> symbolInfosV1
+        !symbolInfo.isPresent()
+
+        when:
+        // Though refreshed, not updated
+        updated = symbolService.isUpdatedSince(Instant.ofEpochMilli(1000))
+
+        then:
+        !updated
+
+        when:
+        symbolInfo = symbolService.getSymbolInfoByName("ETHUSDT")
+
+        then:
+        2 * system.currentTimeMillis() >>> [1201012, 1201022]
+        1 * symbolFetcher.getSymbolInfos() >> symbolInfosV2
+        symbolInfo.get().symbol.name == "ETHUSDT"
+
+        when:
+        // Refreshed and updated
+        updated = symbolService.isUpdatedSince(Instant.ofEpochMilli(1000))
+
+        then:
+        updated
+    }
+
+    def "get all symbol info"() {
+        given:
+        def symbolInfos = [
+                new SymbolInfo(
+                        new Symbol(new Currency("BTC"), new Currency("USDT")),
+                        new BigDecimal("0.012"),
+                        new BigDecimal("100000.0"),
+                        new BigDecimal("0.01")),
+                new SymbolInfo(
+                        new Symbol(new Currency("ETH"), new Currency("BTC")),
+                        new BigDecimal("0.013"),
+                        new BigDecimal("200000.0"),
+                        new BigDecimal("0.02"))
+        ]
+
+        when:
+        def result = symbolService.getAllSymbolInfos()
+
+        then:
+        1 * system.currentTimeMillis() >> 1000
+        1 * symbolFetcher.getSymbolInfos() >> symbolInfos
+        result == symbolInfos
     }
 
     def "get symbol info"() {
         given:
-        def exchangeInfo = new ExchangeInfo()
         def symbolInfos = [
-            new com.binance.api.client.domain.general.SymbolInfo(
-                    symbol: "BTCUSDT",
-                    status: SymbolStatus.TRADING,
-                    baseAsset: "BTC",
-                    quoteAsset: "USDT",
-                    filters: [
-                       new SymbolFilter(
-                           filterType: FilterType.LOT_SIZE,
-                           minQty: "0.001",
-                           maxQty: "100000.123",
-                           stepSize: "0.002"
-                       )
-                    ]),
-            new com.binance.api.client.domain.general.SymbolInfo(
-                    symbol: "ETHBTC",
-                    status: SymbolStatus.HALT,
-                    baseAsset: "ETH",
-                    quoteAsset: "BTC",
-                    filters: [
-                        new SymbolFilter(
-                            filterType: FilterType.LOT_SIZE,
-                            minQty: "0.002",
-                            maxQty: "100000.124",
-                            stepSize: "0.003"
-                        )
-                    ]),
-            new com.binance.api.client.domain.general.SymbolInfo(
-                    symbol: "CNDBTC",
-                    status: SymbolStatus.TRADING,
-                    baseAsset: "CND",
-                    quoteAsset: "BTC",
-                    filters: [])
+                new SymbolInfo(
+                        new Symbol(new Currency("BTC"), new Currency("USDT")),
+                        new BigDecimal("0.012"),
+                        new BigDecimal("100000.0"),
+                        new BigDecimal("0.01")),
+                new SymbolInfo(
+                        new Symbol(new Currency("ETH"), new Currency("BTC")),
+                        new BigDecimal("0.013"),
+                        new BigDecimal("200000.0"),
+                        new BigDecimal("0.02"))
         ]
-        exchangeInfo.setSymbols(symbolInfos)
 
         when:
-        def result = service.getSymbolInfos()
+        def symbolInfo = symbolService.getSymbolInfo(
+                new Symbol(new Currency("BTC"), new Currency("USDT")))
 
         then:
-        1 * client.getExchangeInfo() >> exchangeInfo
-        result.size() == 1
-        result.get(0).with { SymbolInfo it ->
-            assert it.symbol == new Symbol(new Currency("BTC"), new Currency("USDT"))
-            assert it.minQuantity == new BigDecimal("0.001")
-            assert it.maxQuantity == new BigDecimal("100000.123")
-            assert it.quantityStepSize == new BigDecimal("0.002")
-            return true
-        }
-    }
-
-    def "exception thrown when getting symbol info"() {
-        when:
-        service.getSymbolInfos()
-
-        then:
-        thrown(IOException)
-        client.getExchangeInfo() >> {throw new RuntimeException()}
+        1 * system.currentTimeMillis() >> 1000
+        1 * symbolFetcher.getSymbolInfos() >> symbolInfos
+        symbolInfo.get().symbol.name == "BTCUSDT"
     }
 }

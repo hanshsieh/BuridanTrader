@@ -13,8 +13,8 @@ import java.util.stream.Collectors;
 public class TradingPathFinder {
 
     private final ShortestPathsResolver shortestPathsResolver;
-    private final SymbolPriceProvider symbolPriceProvider;
-    private final SymbolProvider symbolProvider;
+    private final SymbolPriceService symbolPriceService;
+    private final SymbolService symbolService;
     private final System system;
 
     // Be careful the referenced instance may be changed by other threads
@@ -22,21 +22,21 @@ public class TradingPathFinder {
     private TradingPaths tradingPaths;
 
     public TradingPathFinder(
-            @Nonnull SymbolProvider symbolProvider,
-            @Nonnull SymbolPriceProvider symbolPriceProvider) {
-        this(symbolProvider,
-            symbolPriceProvider,
+            @Nonnull SymbolService symbolService,
+            @Nonnull SymbolPriceService symbolPriceService) {
+        this(symbolService,
+                symbolPriceService,
             new ShortestPathsResolver(),
             new System());
     }
 
     public TradingPathFinder(
-            @Nonnull SymbolProvider symbolProvider,
-            @Nonnull SymbolPriceProvider symbolPriceProvider,
+            @Nonnull SymbolService symbolService,
+            @Nonnull SymbolPriceService symbolPriceService,
             @Nonnull ShortestPathsResolver shortestPathsResolver,
             @Nonnull System system) {
-        this.symbolPriceProvider = symbolPriceProvider;
-        this.symbolProvider = symbolProvider;
+        this.symbolPriceService = symbolPriceService;
+        this.symbolService = symbolService;
         this.shortestPathsResolver = shortestPathsResolver;
         this.system = system;
     }
@@ -97,6 +97,13 @@ public class TradingPathFinder {
     }
 
     @Nonnull
+    public BigDecimal getOrderTargetQuantity(@Nonnull Order order) throws IOException {
+        OrderSpec orderSpec = order.getOrderSpec();
+        BigDecimal price = getPriceForSymbol(orderSpec.getSymbol());
+        return calNextQuantity(order, price);
+    }
+
+    @Nonnull
     private BigDecimal calOrderQuantity(
             @Nonnull BigDecimal nowQuantity,
             @Nonnull OrderSpec orderSpec,
@@ -124,20 +131,20 @@ public class TradingPathFinder {
 
     @Nonnull
     private SymbolInfo getSymbolInfo(@Nonnull Symbol symbol) throws IOException {
-        return symbolProvider.getSymbolInfo(symbol)
+        return symbolService.getSymbolInfo(symbol)
                 .orElseThrow(() -> new IOException("Fail to get symbol info of " + symbol));
     }
 
     @Nonnull
     private BigDecimal getPriceForSymbol(@Nonnull Symbol symbol) throws IOException {
-        return symbolPriceProvider.getPrice(symbol)
+        return symbolPriceService.getPrice(symbol)
                 .orElseThrow(() -> new IOException("Fail to get current price of symbol " + symbol));
     }
 
     private synchronized void checkFreshness() throws IOException {
-        if (lastUpdateTime == null || symbolProvider.isUpdatedSince(lastUpdateTime)) {
+        if (lastUpdateTime == null || symbolService.isUpdatedSince(lastUpdateTime)) {
             tradingPaths = shortestPathsResolver.resolveAllShortestPaths(
-                    symbolProvider.getAllSymbolInfos().stream()
+                    symbolService.getAllSymbolInfos().stream()
                             .map(SymbolInfo::getSymbol)
                             .collect(Collectors.toList()));
             lastUpdateTime = Instant.ofEpochMilli(system.currentTimeMillis());

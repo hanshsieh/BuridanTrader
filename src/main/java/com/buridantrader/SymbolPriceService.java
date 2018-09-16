@@ -2,10 +2,6 @@ package com.buridantrader;
 
 import com.binance.api.client.BinanceApiRestClient;
 import com.binance.api.client.domain.market.TickerPrice;
-import com.google.common.cache.Cache;
-import com.google.common.cache.CacheBuilder;
-import com.google.common.cache.CacheLoader;
-import com.google.common.cache.LoadingCache;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -18,18 +14,18 @@ import java.util.List;
 import java.util.Map;
 import java.util.Optional;
 
-public class SymbolPriceProvider {
-    private static final Logger LOGGER = LoggerFactory.getLogger(SymbolPriceProvider.class);
+public class SymbolPriceService {
+    private static final Logger LOGGER = LoggerFactory.getLogger(SymbolPriceService.class);
     private static final long REFRESH_MS = 1000 * 60;
     private final BinanceApiRestClient client;
-    private final SymbolProvider symbolProvider;
+    private final SymbolService symbolService;
     private Instant lastRefreshTime;
     private final Map<Symbol, BigDecimal> priceMap = new HashMap<>();
 
-    public SymbolPriceProvider(@Nonnull BinanceApiRestClient client,
-                               @Nonnull SymbolProvider symbolProvider) {
+    public SymbolPriceService(@Nonnull BinanceApiRestClient client,
+                              @Nonnull SymbolService symbolService) {
         this.client = client;
-        this.symbolProvider = symbolProvider;
+        this.symbolService = symbolService;
     }
 
     @Nonnull
@@ -45,7 +41,7 @@ public class SymbolPriceProvider {
             List<TickerPrice> tickerPrices = client.getAllPrices();
             for (TickerPrice tickerPrice : tickerPrices) {
                 BigDecimal price = new BigDecimal(tickerPrice.getPrice());
-                symbolProvider.getSymbolInfoByName(tickerPrice.getSymbol())
+                symbolService.getSymbolInfoByName(tickerPrice.getSymbol())
                         .map(SymbolInfo::getSymbol)
                         .ifPresent((s) -> priceMap.put(s, price));
             }
