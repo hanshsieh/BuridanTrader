@@ -106,6 +106,7 @@ public class PlanProducer {
                 maxGrowthRateDiff = growthDiff;
             }
         }
+        LOGGER.debug("Max growth rate diff is {}", maxGrowthRateDiff);
         return mostProfitableOrders;
     }
 
