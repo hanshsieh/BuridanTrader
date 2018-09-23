@@ -1,5 +1,9 @@
 package com.buridantrader;
 
+import com.buridantrader.exceptions.ValueException;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
+
 import javax.annotation.Nonnull;
 import java.io.IOException;
 import java.math.BigDecimal;
@@ -8,17 +12,19 @@ import java.util.stream.Collectors;
 
 public class PlanProducer {
 
+    private static final Logger LOGGER = LoggerFactory.getLogger(PlanProducer.class);
+
     private static class Candidate {
         public final Asset asset;
         public final PricePrediction pricePrediction;
-        public final BigDecimal value;
+        public final BigDecimal balanceValue;
         public Candidate(
                 @Nonnull Asset asset,
                 @Nonnull PricePrediction pricePrediction,
-                @Nonnull BigDecimal value) {
+                @Nonnull BigDecimal balanceValue) {
             this.asset = asset;
             this.pricePrediction = pricePrediction;
-            this.value = value;
+            this.balanceValue = balanceValue;
         }
     }
 
@@ -27,6 +33,7 @@ public class PlanProducer {
     private static final Currency QUOTE_CURRENCY = new Currency("USDT");
     private static final BigDecimal TRADING_FEE_RATE = new BigDecimal("0.001");
     private static final Set<Currency> EXCLUDE_CURRENCIES = Collections.singleton(new Currency("BNB"));
+    private static final BigDecimal MEASURE_PERIOD_SEC = new BigDecimal(60 * 15);
     private final PricePredictor pricePredictor;
     private final AssetViewer assetViewer;
     private final TradingPathFinder tradingPathFinder;
@@ -50,9 +57,11 @@ public class PlanProducer {
         List<Candidate> candidates = buildAllCandidates();
         List<Candidate> sources = findSourceCandidates(candidates);
         for (Candidate source : sources) {
+            LOGGER.debug("Source asset: {}", source.asset.getCurrency());
             buildMostProfitableOrders(source, candidates)
                 .ifPresent((orders) -> orders.forEach(plan::addOrder));
         }
+        LOGGER.debug("Producing a plan with {} orders", plan.getOrders().size());
         return plan;
     }
 
@@ -69,39 +78,66 @@ public class PlanProducer {
             if (sourceCurrency.equals(targetCurrency)) {
                 continue;
             }
-            BigDecimal sourceGrowthRate = source.pricePrediction.getGrowthPerSec();
-            BigDecimal targetGrowthRate = target.pricePrediction.getGrowthPerSec();
-            if (sourceGrowthRate.compareTo(targetGrowthRate) <= 0) {
+            Optional<List<Order>> optOrders;
+            try {
+                optOrders = tradingPathFinder.findPathOfOrders(
+                        sourceCurrency,
+                        targetCurrency,
+                        sourceAsset.getBalance());
+            } catch (ValueException ex) {
                 continue;
             }
-            Optional<List<Order>> orders = tradingPathFinder.findPathOfOrders(
-                    sourceCurrency,
-                    targetCurrency,
-                    sourceAsset.getBalance());
-            if (!orders.isPresent()) {
+            if (!optOrders.isPresent() || optOrders.get().isEmpty()) {
                 continue;
             }
-            // If no convert, after time t, the value will be:
-            // sourcePrice * sourceQuantity * (1 + sourceGrowthRate) * t
-            // If convert, after time t, the value will be:
-            // sourcePrice * sourceQuantity * (1 - transactionFeeRate) * (1 + targetGrowthRate) * t
-            BigDecimal totalFeeRate = TRADING_FEE_RATE.multiply(new BigDecimal(orders.get().size()));
-            BigDecimal growthRateAfterConvert = BigDecimal.ONE
-                    .add(targetGrowthRate)
-                    .multiply(BigDecimal.ONE.subtract(totalFeeRate));
-            BigDecimal growthRateDiff = growthRateAfterConvert.subtract(BigDecimal.ONE.add(sourceGrowthRate));
-            if (growthRateDiff.compareTo(maxGrowthRateDiff) > 0) {
-                mostProfitableOrders = orders;
-                maxGrowthRateDiff = growthRateDiff;
+            BigDecimal growthDiff = calGrowthRateDiff(source, target, optOrders.get());
+            LOGGER.debug("Growth rate diff {} relative to {} is {}",
+                    source.asset.getCurrency(),
+                    target.asset.getCurrency(),
+                    growthDiff);
+            if (growthDiff.compareTo(maxGrowthRateDiff) > 0) {
+                mostProfitableOrders = optOrders;
+                maxGrowthRateDiff = growthDiff;
             }
         }
         return mostProfitableOrders;
     }
 
     @Nonnull
+    private BigDecimal calGrowthRateDiff(
+            @Nonnull Candidate source,
+            @Nonnull Candidate target,
+            @Nonnull List<Order> orders) throws IOException {
+
+        BigDecimal sourceGrowthRate = source.pricePrediction.getGrowthPerSec();
+        BigDecimal targetGrowthRate = target.pricePrediction.getGrowthPerSec();
+
+        // If no convert, after time t, the value will be:
+        // sourcePrice * sourceQuantity + sourceGrowthRate * t * sourceQuantity
+        // If convert, after time t, the value will be:
+        // sourcePrice * sourceQuantity - transactionFeeRate * sourcePrice * sourceQuantity
+        // + targetGrowthRate * t * targetQuantity
+        BigDecimal targetQuantity = tradingPathFinder.getOrderTargetQuantity(orders.get(orders.size() - 1));
+        BigDecimal growthAfterConvert = targetGrowthRate.multiply(MEASURE_PERIOD_SEC)
+                .multiply(targetQuantity);
+
+        // If the "sourceGrowthRate" is negative, don't consider the transaction fee.
+        if (sourceGrowthRate.signum() >= 0) {
+            BigDecimal totalFee = TRADING_FEE_RATE
+                    .multiply(new BigDecimal(orders.size()))
+                    .multiply(source.balanceValue);
+            growthAfterConvert = growthAfterConvert.subtract(totalFee);
+        }
+
+        BigDecimal growthNoConvert = sourceGrowthRate.multiply(MEASURE_PERIOD_SEC)
+                .multiply(source.asset.getBalance());
+        return growthAfterConvert.subtract(growthNoConvert);
+    }
+
+    @Nonnull
     private List<Candidate> findSourceCandidates(@Nonnull List<Candidate> candidates) {
         return candidates.stream()
-                .filter((c) -> c.value.compareTo(MIN_TRADING_QUOTE_QUANTITY) >= 0)
+                .filter((c) -> c.balanceValue.compareTo(MIN_TRADING_QUOTE_QUANTITY) >= 0)
                 .sorted(Comparator.comparing(e -> e.pricePrediction.getGrowthPerSec()))
                 .collect(Collectors.toList());
     }
@@ -109,6 +145,7 @@ public class PlanProducer {
     @Nonnull
     private List<Candidate> buildAllCandidates() throws IOException {
         List<Candidate> candidates = new ArrayList<>();
+        // FIXME Should look at all currencies, not asset
         for (Asset asset : assetViewer.getAccountAssets()) {
 
             // TODO Should allow more fine-grain control of how to keep the quantity of
@@ -116,16 +153,39 @@ public class PlanProducer {
             if (EXCLUDE_CURRENCIES.contains(asset.getCurrency())) {
                 continue;
             }
-            Optional<PricePrediction> prediction = pricePredictor.getPrediction(asset.getCurrency(), QUOTE_CURRENCY);
-            if (!prediction.isPresent()) {
+
+            BigDecimal value;
+            try {
+                Optional<BigDecimal> optValue = priceConverter.getRelativePrice(
+                        asset.getCurrency(), QUOTE_CURRENCY, asset.getBalance());
+                if (!optValue.isPresent()) {
+                    LOGGER.info("Unable to get the price of {} relative to {}. Skipping the asset",
+                            asset.getCurrency(), QUOTE_CURRENCY);
+                    continue;
+                }
+                value = optValue.get();
+            } catch (ValueException ex) {
+                LOGGER.debug("The balance of asset {} is ignored because the balance is {}",
+                        asset.getCurrency(), ex.getReason());
+                value = BigDecimal.ZERO;
+            }
+
+            PricePrediction prediction;
+            try {
+                prediction = pricePredictor.getPrediction(asset.getCurrency(), QUOTE_CURRENCY);
+            } catch (IllegalArgumentException ex) {
+                LOGGER.info("Unable to get prediction for {} relative to {}. Skipping it",
+                        asset.getCurrency(),
+                        QUOTE_CURRENCY);
                 continue;
             }
-            Optional<BigDecimal> value = priceConverter.getRelativePrice(
-                    asset.getCurrency(), QUOTE_CURRENCY, asset.getBalance());
-            if (!value.isPresent()) {
-                continue;
-            }
-            candidates.add(new Candidate(asset, prediction.get(), value.get()));
+
+            LOGGER.debug("For asset {}, growth per sec: {}, total value relative to {}: {}",
+                    asset.getCurrency(),
+                    prediction.getGrowthPerSec(),
+                    QUOTE_CURRENCY,
+                    value);
+            candidates.add(new Candidate(asset, prediction, value));
         }
         return candidates;
     }

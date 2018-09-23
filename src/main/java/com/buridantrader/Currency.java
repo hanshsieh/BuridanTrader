@@ -30,4 +30,9 @@ public class Currency {
     public int hashCode() {
         return name.hashCode();
     }
+
+    @Nonnull
+    public String toString() {
+        return name;
+    }
 }

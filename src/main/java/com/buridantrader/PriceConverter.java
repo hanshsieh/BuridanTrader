@@ -1,5 +1,7 @@
 package com.buridantrader;
 
+import com.buridantrader.exceptions.ValueException;
+
 import javax.annotation.Nonnull;
 import java.io.IOException;
 import java.math.BigDecimal;
@@ -19,11 +21,15 @@ public class PriceConverter {
             @Nonnull Currency baseCurrency,
             @Nonnull Currency quoteCurrency,
             @Nonnull BigDecimal quantity
-    ) throws IOException {
+    ) throws IOException, ValueException {
+        if (baseCurrency.equals(quoteCurrency)) {
+            return Optional.of(quantity);
+        }
         Optional<List<Order>> optOrders = tradingPathFinder.findPathOfOrders(
                 baseCurrency,
                 quoteCurrency,
                 quantity);
+
         if (!optOrders.isPresent()) {
             return Optional.empty();
         }
