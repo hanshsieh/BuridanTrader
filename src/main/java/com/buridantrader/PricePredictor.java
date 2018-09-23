@@ -13,8 +13,11 @@ public class PricePredictor {
     // TODO Make it configurable
     private static final long PREDICTION_PERIOD_MS = 1000 * 60 * 60;
     private static final BigDecimal WEIGHT_MUL_FACTOR = new BigDecimal("0.949660");
-    private static final BigDecimal SECONDS_PER_MINUTE = new BigDecimal("60");
-    private static final MathContext MATH_CONTEXT = new MathContext(6, RoundingMode.HALF_UP);
+    private static final BigDecimal SECONDS_PER_MINUTE = new BigDecimal(60);
+    private static final int MIN_PRECISION = 6;
+
+    // 6 is the basic scale. 2 is because we are dividing by 60
+    private static final int GROWTH_RATE_EXTRA_SCALE = MIN_PRECISION + 2;
     private final CurrencyPriceViewer currencyPriceViewer;
     private final System system;
 
@@ -44,10 +47,6 @@ public class PricePredictor {
         List<Candlestick> candlesticks = currencyPriceViewer.getPriceHistoryPerMinute(
                 baseCurrency, quoteCurrency, startTime, endTime);
 
-        if (candlesticks.size() <= 1) {
-            throw new IOException("Cannot get enough price candlesticks");
-        }
-
         List<BigDecimal> growthRates = calGrowthRates(candlesticks);
 
         BigDecimal weight = BigDecimal.ONE;
@@ -59,23 +58,31 @@ public class PricePredictor {
             BigDecimal growthRate = reversedItr.previous();
             result = result.add(weight.multiply(growthRate));
             totalWeight = totalWeight.add(weight);
-            weight = weight.multiply(WEIGHT_MUL_FACTOR, MATH_CONTEXT);
+            weight = weight.multiply(WEIGHT_MUL_FACTOR);
         }
-        result = result.divide(totalWeight, MATH_CONTEXT);
+        int scale = result.scale()
+                + totalWeight.toBigInteger().toString().length()
+                + MIN_PRECISION;
+        result = result.divide(totalWeight, scale, RoundingMode.HALF_UP);
 
         return new PricePrediction(result);
     }
 
     @Nonnull
-    private List<BigDecimal> calGrowthRates(List<Candlestick> candlesticks) {
+    private List<BigDecimal> calGrowthRates(@Nonnull List<Candlestick> candlesticks) throws IOException {
+        if (candlesticks.size() <= 1) {
+            throw new IOException("Cannot get enough price candlesticks");
+        }
         List<BigDecimal> growthRates = new ArrayList<>(candlesticks.size() - 1);
         Iterator<Candlestick> itr = candlesticks.iterator();
         Candlestick lastCandlestick = itr.next();
         while (itr.hasNext()) {
             Candlestick candlestick = itr.next();
-            BigDecimal growthRate = candlestick.getAveragePrice()
-                    .subtract(lastCandlestick.getAveragePrice())
-                    .divide(SECONDS_PER_MINUTE, RoundingMode.HALF_UP);
+            BigDecimal priceDiff = candlestick.getAveragePrice()
+                    .subtract(lastCandlestick.getAveragePrice());
+            int scale = priceDiff.scale() + GROWTH_RATE_EXTRA_SCALE;
+            BigDecimal growthRate = priceDiff
+                    .divide(SECONDS_PER_MINUTE, scale, RoundingMode.HALF_UP);
             growthRates.add(growthRate);
             lastCandlestick = candlestick;
         }

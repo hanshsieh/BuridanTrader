@@ -3,6 +3,8 @@ package com.buridantrader;
 import com.binance.api.client.BinanceApiRestClient;
 import com.binance.api.client.domain.market.CandlestickInterval;
 import com.binance.api.client.impl.BinanceApiRestClientImpl;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 
 import javax.annotation.Nonnull;
 import java.io.Closeable;
@@ -18,6 +20,7 @@ import java.util.stream.Collectors;
 
 public class SymbolPriceViewer {
 
+    private static final Logger LOGGER = LoggerFactory.getLogger(SymbolPriceViewer.class);
     private static final BigDecimal TWO = new BigDecimal("2");
     private final BinanceApiRestClient client;
 
@@ -26,7 +29,7 @@ public class SymbolPriceViewer {
     }
 
     @Nonnull
-    public List<Candlestick> getPriceHistory(
+    public List<Candlestick> getPriceHistoryPerMinute(
             @Nonnull Symbol symbol,
             @Nonnull Instant startTime,
             @Nonnull Instant endTime) {
@@ -34,6 +37,13 @@ public class SymbolPriceViewer {
         int numMinutes = (int) TimeUnit.MINUTES.convert(
                 endTime.toEpochMilli() - startTime.toEpochMilli(),
                 TimeUnit.MILLISECONDS);
+
+        // TODO Cached previous result
+        LOGGER.debug("Getting candlesticks for symbol {} for {} minutes from epoch {} ms to {} ms",
+                symbol.getName(),
+                numMinutes,
+                startTime.toEpochMilli(),
+                endTime.toEpochMilli());
         return client.getCandlestickBars(
                 symbol.getName(),
                 CandlestickInterval.ONE_MINUTE,
