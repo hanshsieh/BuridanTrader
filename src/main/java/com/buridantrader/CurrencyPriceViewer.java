@@ -3,7 +3,6 @@ package com.buridantrader;
 import javax.annotation.Nonnull;
 import java.io.IOException;
 import java.math.BigDecimal;
-import java.math.MathContext;
 import java.math.RoundingMode;
 import java.time.Instant;
 import java.util.ArrayList;
@@ -15,7 +14,7 @@ import java.util.stream.Collectors;
 public class CurrencyPriceViewer {
 
     // TODO Make it configurable
-    private final MathContext MATH_CONTEXT = new MathContext(20, RoundingMode.HALF_UP);
+    private final int ADDITIONAL_SCALE = 6;
     private final SymbolPriceViewer symbolPriceViewer;
     private final TradingPathFinder tradingPathFinder;
 
@@ -36,7 +35,7 @@ public class CurrencyPriceViewer {
         Optional<List<OrderSpec>> optOrderSpecs =
                 tradingPathFinder.findPathOfOrderSpecs(baseCurrency, quoteCurrency);
 
-        if (!optOrderSpecs.isPresent() || optOrderSpecs.get().isEmpty()) {
+        if (!optOrderSpecs.isPresent()) {
             throw new IllegalArgumentException("No trading path from " + baseCurrency + " to " + quoteCurrency);
         }
 
@@ -69,7 +68,7 @@ public class CurrencyPriceViewer {
         int minSize = Integer.MAX_VALUE;
         for (OrderSpec orderSpec : orderSpecs) {
             Symbol symbol = orderSpec.getSymbol();
-            List<Candlestick> candlesticks = symbolPriceViewer.getPriceHistory(symbol, startTime, endTime);
+            List<Candlestick> candlesticks = symbolPriceViewer.getPriceHistoryPerMinute(symbol, startTime, endTime);
             List<Candlestick> convertedCandlesticks = convertCandlesticksForOrder(candlesticks, orderSpec);
             candlesticksForOrders.add(convertedCandlesticks);
             minSize = Math.min(candlesticks.size(), minSize);
@@ -100,7 +99,7 @@ public class CurrencyPriceViewer {
         oriItr.forEachRemaining((c) -> result.add(new Candlestick(
                 c.getOpenTime(),
                 c.getCloseTime(),
-                c.getAveragePrice().multiply(newItr.next().getAveragePrice(), MATH_CONTEXT)
+                c.getAveragePrice().multiply(newItr.next().getAveragePrice())
         )));
         return result;
     }
@@ -114,10 +113,13 @@ public class CurrencyPriceViewer {
         }
         try {
             return candlesticks.stream()
-                    .map((c) -> new Candlestick(
-                            c.getOpenTime(),
-                            c.getCloseTime(),
-                            BigDecimal.ONE.divide(c.getAveragePrice(), MATH_CONTEXT)))
+                    .map((c) -> {
+                        int scale = c.getAveragePrice().toBigInteger().toString().length() + ADDITIONAL_SCALE;
+                        return new Candlestick(
+                                c.getOpenTime(),
+                                c.getCloseTime(),
+                                BigDecimal.ONE.divide(c.getAveragePrice(), scale, RoundingMode.HALF_UP));
+                    })
                     .collect(Collectors.toList());
         } catch (ArithmeticException ex) {
             throw new IllegalArgumentException("Price cannot be 0", ex);
