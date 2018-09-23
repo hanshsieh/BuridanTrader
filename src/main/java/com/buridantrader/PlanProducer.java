@@ -73,6 +73,12 @@ public class PlanProducer {
         BigDecimal maxGrowthRateDiff = BigDecimal.ZERO;
         for (Candidate target : candidates) {
             Asset targetAsset = target.asset;
+
+            // TODO Should allow more fine-grain control of how to keep the quantity of
+            // BNB
+            if (EXCLUDE_CURRENCIES.contains(targetAsset.getCurrency())) {
+                continue;
+            }
             Currency sourceCurrency = sourceAsset.getCurrency();
             Currency targetCurrency = targetAsset.getCurrency();
             if (sourceCurrency.equals(targetCurrency)) {
@@ -137,7 +143,11 @@ public class PlanProducer {
     @Nonnull
     private List<Candidate> findSourceCandidates(@Nonnull List<Candidate> candidates) {
         return candidates.stream()
-                .filter((c) -> c.balanceValue.compareTo(MIN_TRADING_QUOTE_QUANTITY) >= 0)
+
+                // TODO Should allow more fine-grain control of how to keep the quantity of
+                // BNB
+                .filter((c) -> !EXCLUDE_CURRENCIES.contains(c.asset.getCurrency())
+                        && c.balanceValue.compareTo(MIN_TRADING_QUOTE_QUANTITY) >= 0)
                 .sorted(Comparator.comparing(e -> e.pricePrediction.getGrowthPerSec()))
                 .collect(Collectors.toList());
     }
@@ -147,12 +157,6 @@ public class PlanProducer {
         List<Candidate> candidates = new ArrayList<>();
         // FIXME Should look at all currencies, not asset
         for (Asset asset : assetViewer.getAccountAssets()) {
-
-            // TODO Should allow more fine-grain control of how to keep the quantity of
-            // BNB
-            if (EXCLUDE_CURRENCIES.contains(asset.getCurrency())) {
-                continue;
-            }
 
             BigDecimal value;
             try {
