@@ -1,5 +1,7 @@
 package com.buridantrader;
 
+import com.buridantrader.exceptions.ValueException;
+
 import javax.annotation.Nonnull;
 import javax.annotation.concurrent.ThreadSafe;
 import java.io.IOException;
@@ -50,7 +52,7 @@ public class TradingPathFinder {
         Optional<PathStep> optPathEntry = tradingPaths.getNextStep(sourceCurrency, targetCurrency);
         List<OrderSpec> path = new ArrayList<>();
         Currency nowCurrency = sourceCurrency;
-        while (!nowCurrency.equals(targetCurrency)) {
+        do {
             if (!optPathEntry.isPresent()) {
                 return Optional.empty();
             }
@@ -59,7 +61,7 @@ public class TradingPathFinder {
             Currency nextCurrency = pathStep.getNextCurrency(nowCurrency);
             optPathEntry = tradingPaths.getNextStep(nextCurrency, targetCurrency);
             nowCurrency = nextCurrency;
-        }
+        } while (!nowCurrency.equals(targetCurrency));
         return Optional.of(path);
     }
 
@@ -67,7 +69,7 @@ public class TradingPathFinder {
     public Optional<List<Order>> findPathOfOrders(
             @Nonnull final Currency sourceCurrency,
             @Nonnull final Currency targetCurrency,
-            @Nonnull final BigDecimal quantity) throws IOException {
+            @Nonnull final BigDecimal quantity) throws IOException, ValueException {
         Optional<List<OrderSpec>> optOrderSpecs = findPathOfOrderSpecs(sourceCurrency, targetCurrency);
         if (!optOrderSpecs.isPresent()) {
             return Optional.empty();
@@ -80,13 +82,8 @@ public class TradingPathFinder {
             SymbolInfo symbolInfo = getSymbolInfo(orderSpec.getSymbol());
             BigDecimal orderQuantity = calOrderQuantity(nowQuantity, orderSpec, symbolInfo, price);
 
-            BigDecimal formalizedQuantity;
-            try {
-                formalizedQuantity = symbolInfo.getQuantityFormalizer()
-                        .formalize(orderQuantity, RoundingMode.DOWN);
-            } catch (IllegalArgumentException ex) {
-                return Optional.empty();
-            }
+            BigDecimal formalizedQuantity = symbolInfo.getQuantityFormalizer()
+                    .formalize(orderQuantity, RoundingMode.DOWN);
             Order order = new Order(orderSpec, formalizedQuantity);
 
             orders.add(order);

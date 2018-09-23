@@ -12,10 +12,15 @@ public class PricePredictor {
 
     // TODO Make it configurable
     private static final long PREDICTION_PERIOD_MS = 1000 * 60 * 60;
-    private static final BigDecimal WEIGHT_MUL_FACTOR = new BigDecimal("0.99917");
-    private static final int PRECISION_SCALE = 6;
+    private static final BigDecimal WEIGHT_MUL_FACTOR = new BigDecimal("0.949660");
+    private static final BigDecimal SECONDS_PER_MINUTE = new BigDecimal("60");
+    private static final MathContext MATH_CONTEXT = new MathContext(6, RoundingMode.HALF_UP);
     private final CurrencyPriceViewer currencyPriceViewer;
     private final System system;
+
+    public PricePredictor(@Nonnull CurrencyPriceViewer priceViewer) {
+        this(priceViewer, new System());
+    }
 
     public PricePredictor(
             @Nonnull CurrencyPriceViewer currencyPriceViewer,
@@ -25,37 +30,40 @@ public class PricePredictor {
     }
 
     @Nonnull
-    public Optional<PricePrediction> getPrediction(
+    public PricePrediction getPrediction(
             @Nonnull Currency baseCurrency,
-            @Nonnull Currency quoteCurrency) throws IOException {
+            @Nonnull Currency quoteCurrency) throws IOException, IllegalArgumentException {
+
+        if (baseCurrency.equals(quoteCurrency)) {
+            return new PricePrediction(BigDecimal.ZERO);
+        }
 
         Instant endTime = Instant.ofEpochMilli(system.currentTimeMillis());
         Instant startTime = endTime.minusMillis(PREDICTION_PERIOD_MS);
 
-        Optional<List<Candlestick>> optCandlesticks =
-                currencyPriceViewer.getPriceHistory(baseCurrency, quoteCurrency, startTime, endTime);
+        List<Candlestick> candlesticks = currencyPriceViewer.getPriceHistoryPerMinute(
+                baseCurrency, quoteCurrency, startTime, endTime);
 
-        if (!optCandlesticks.isPresent() || optCandlesticks.get().size() <= 1) {
-            return Optional.empty();
+        if (candlesticks.size() <= 1) {
+            throw new IOException("Cannot get enough price candlesticks");
         }
 
-        List<BigDecimal> growthRates = calGrowthRates(optCandlesticks.get());
+        List<BigDecimal> growthRates = calGrowthRates(candlesticks);
 
         BigDecimal weight = BigDecimal.ONE;
         BigDecimal totalWeight = BigDecimal.ZERO;
         BigDecimal result = BigDecimal.ZERO;
 
         ListIterator<BigDecimal> reversedItr = growthRates.listIterator(growthRates.size());
-        MathContext mathContext = new MathContext(PRECISION_SCALE, RoundingMode.HALF_UP);
         while (reversedItr.hasPrevious()) {
             BigDecimal growthRate = reversedItr.previous();
             result = result.add(weight.multiply(growthRate));
             totalWeight = totalWeight.add(weight);
-            weight = weight.multiply(WEIGHT_MUL_FACTOR, mathContext);
+            weight = weight.multiply(WEIGHT_MUL_FACTOR, MATH_CONTEXT);
         }
-        result = result.divide(totalWeight, mathContext);
+        result = result.divide(totalWeight, MATH_CONTEXT);
 
-        return Optional.of(new PricePrediction(result));
+        return new PricePrediction(result);
     }
 
     @Nonnull
@@ -65,7 +73,9 @@ public class PricePredictor {
         Candlestick lastCandlestick = itr.next();
         while (itr.hasNext()) {
             Candlestick candlestick = itr.next();
-            BigDecimal growthRate = candlestick.getAveragePrice().subtract(lastCandlestick.getAveragePrice());
+            BigDecimal growthRate = candlestick.getAveragePrice()
+                    .subtract(lastCandlestick.getAveragePrice())
+                    .divide(SECONDS_PER_MINUTE, RoundingMode.HALF_UP);
             growthRates.add(growthRate);
             lastCandlestick = candlestick;
         }

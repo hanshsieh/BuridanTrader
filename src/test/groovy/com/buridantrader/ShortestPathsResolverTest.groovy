@@ -4,7 +4,8 @@ import spock.lang.Specification
 
 class ShortestPathsResolverTest extends Specification {
 
-    def resolver = new ShortestPathsResolver()
+    def system = Mock(System)
+    def resolver = new ShortestPathsResolver(system)
 
     def "resolve all shortest paths"() {
         given:
@@ -49,6 +50,7 @@ class ShortestPathsResolverTest extends Specification {
         step7.get().symbolToNext.name == "ETCNEO"
         !step8.isPresent()
         !step9.isPresent()
+        2 * system.currentTimeMillis() >>> [100, 200]
     }
 
 }

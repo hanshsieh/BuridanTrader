@@ -1,5 +1,8 @@
 package com.buridantrader;
 
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
+
 import javax.annotation.Nonnull;
 import javax.annotation.concurrent.Immutable;
 import javax.annotation.concurrent.ThreadSafe;
@@ -9,8 +12,22 @@ import java.util.*;
 @Immutable
 public class ShortestPathsResolver {
 
+    private static final Logger LOGGER = LoggerFactory.getLogger(ShortestPathsResolver.class);
+    private final System system;
+
+    public ShortestPathsResolver() {
+        this(new System());
+    }
+
+    public ShortestPathsResolver(@Nonnull System system) {
+        this.system = system;
+    }
+
     @Nonnull
     public TradingPaths resolveAllShortestPaths(@Nonnull Collection<Symbol> symbols) {
+
+        long startTimeMs = system.currentTimeMillis();
+        LOGGER.debug("Resolving all shortest paths...");
 
         Map<Currency, Map<Currency, PathStep>> newPathGraph = buildInitialGraph(symbols);
 
@@ -39,6 +56,8 @@ public class ShortestPathsResolver {
                 }
             }
         }
+        long endTimeMs = system.currentTimeMillis();
+        LOGGER.debug("All shortest path resolved. Elapsed time: {} ms", endTimeMs - startTimeMs);
         return new TradingPaths(newPathGraph);
     }
 

@@ -1,5 +1,6 @@
 package com.buridantrader
 
+import com.buridantrader.exceptions.ValueException
 import spock.lang.Specification
 
 import java.math.RoundingMode
@@ -184,9 +185,11 @@ class TradingPathFinderTest extends Specification {
         def pathStep1 = new PathStep(symbol1, 3)
 
         when:
-        def path = tradingPathFinder.findPathOfOrders(sourceCurrency, targetCurrency, new BigDecimal("100.0"))
+        tradingPathFinder.findPathOfOrders(sourceCurrency, targetCurrency, new BigDecimal("100.0"))
 
         then:
+        def ex = thrown(ValueException)
+        ex.reason == ValueException.Reason.TOO_SMALL
         (1 .. _) * symbolInfo1.getSymbol() >> symbol1
         (1 .. _) * symbolInfo1.getQuantityFormalizer() >> quantityFormalizer1
         1 * symbolProvider.getAllSymbolInfos() >> symbolInfos
@@ -195,8 +198,9 @@ class TradingPathFinderTest extends Specification {
         1 * tradingPaths.getNextStep(sourceCurrency, targetCurrency) >> Optional.of(pathStep1)
         1 * symbolProvider.getSymbolInfo(symbol1) >> Optional.of(symbolInfos[0])
         1 * symbolPriceProvider.getPrice(symbol1) >> Optional.of(new BigDecimal("2.16"))
-        1 * quantityFormalizer1.formalize(new BigDecimal("100.0"), RoundingMode.DOWN) >> {throw new IllegalArgumentException()}
-        !path.isPresent()
+        1 * quantityFormalizer1.formalize(new BigDecimal("100.0"), RoundingMode.DOWN) >> {
+            throw new ValueException(ValueException.Reason.TOO_SMALL, "")
+        }
     }
 
 }
