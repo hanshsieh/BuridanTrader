@@ -1,6 +1,8 @@
 package com.buridantrader;
 
 import com.buridantrader.exceptions.ValueException;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 
 import javax.annotation.Nonnull;
 import javax.annotation.concurrent.ThreadSafe;
@@ -14,6 +16,7 @@ import java.util.stream.Collectors;
 @ThreadSafe
 public class TradingPathFinder {
 
+    private static final Logger LOGGER = LoggerFactory.getLogger(TradingPathFinder.class);
     private final ShortestPathsResolver shortestPathsResolver;
     private final SymbolPriceService symbolPriceService;
     private final SymbolService symbolService;
@@ -88,39 +91,76 @@ public class TradingPathFinder {
 
             orders.add(order);
 
-            nowQuantity = calNextQuantity(order, price);
+            nowQuantity = calTargetQuantity(order, symbolInfo, price);
         }
         return Optional.of(orders);
     }
 
     @Nonnull
     public BigDecimal getOrderTargetQuantity(@Nonnull Order order) throws IOException {
-        OrderSpec orderSpec = order.getOrderSpec();
-        BigDecimal price = getPriceForSymbol(orderSpec.getSymbol());
-        return calNextQuantity(order, price);
-    }
-
-    @Nonnull
-    private BigDecimal calOrderQuantity(
-            @Nonnull BigDecimal nowQuantity,
-            @Nonnull OrderSpec orderSpec,
-            @Nonnull SymbolInfo symbolInfo,
-            @Nonnull BigDecimal price) {
-        if (OrderSide.SELL.equals(orderSpec.getOrderSide())) {
-            return nowQuantity;
+        if (OrderSide.SELL.equals(order.getOrderSpec().getOrderSide())) {
+            return calOrderQuoteQuantity(order, RoundingMode.DOWN);
         } else {
-            int scale = getQuantityStepScale(symbolInfo);
-            return nowQuantity.divide(price, scale, RoundingMode.DOWN);
+            return order.getQuantity();
         }
     }
 
     @Nonnull
-    private BigDecimal calNextQuantity(
+    public BigDecimal getOrderSourceQuantity(@Nonnull Order order) throws IOException {
+        if (OrderSide.BUY.equals(order.getOrderSpec().getOrderSide())) {
+            return calOrderQuoteQuantity(order, RoundingMode.UP);
+        } else {
+            return order.getQuantity();
+        }
+    }
+
+    @Nonnull
+    private BigDecimal calOrderQuoteQuantity(
+            @Nonnull Order order, @Nonnull RoundingMode roundingMode) throws IOException {
+        BigDecimal orderQuantity = order.getQuantity();
+        OrderSpec orderSpec = order.getOrderSpec();
+        SymbolInfo symbolInfo = getSymbolInfo(orderSpec.getSymbol());
+        BigDecimal price = getPriceForSymbol(orderSpec.getSymbol());
+        BigDecimal formalizedPrice = symbolInfo.getPriceFormalizer()
+                .formalize(price, roundingMode);
+        return orderQuantity.multiply(formalizedPrice);
+    }
+
+    @Nonnull
+    private BigDecimal calOrderQuantity(
+            @Nonnull BigDecimal sourceQuantity,
+            @Nonnull OrderSpec orderSpec,
+            @Nonnull SymbolInfo symbolInfo,
+            @Nonnull BigDecimal price) {
+        if (OrderSide.SELL.equals(orderSpec.getOrderSide())) {
+            return sourceQuantity;
+        } else {
+            int scale = getQuantityStepScale(symbolInfo);
+            BigDecimal formalizedPrice = symbolInfo.getPriceFormalizer()
+                    .formalize(price, RoundingMode.UP);
+            BigDecimal orderQuantity = sourceQuantity.divide(formalizedPrice, scale, RoundingMode.DOWN);
+            LOGGER.debug("Calculation for order quantity. symbol: {}, price: {}, orderSide: {}, "
+                            + "sourceQuantity: {}, formalizedPrice: {}, orderQuantity: {}",
+                    symbolInfo.getSymbol(),
+                    price,
+                    orderSpec.getOrderSide(),
+                    sourceQuantity,
+                    formalizedPrice,
+                    orderQuantity);
+            return orderQuantity;
+        }
+    }
+
+    @Nonnull
+    private BigDecimal calTargetQuantity(
             @Nonnull Order order,
+            @Nonnull SymbolInfo symbolInfo,
             @Nonnull BigDecimal price) {
         BigDecimal orderQuantity = order.getQuantity();
         if (OrderSide.SELL.equals(order.getOrderSpec().getOrderSide())) {
-            return orderQuantity.multiply(price);
+            BigDecimal formalizedPrice = symbolInfo.getPriceFormalizer()
+                    .formalize(price, RoundingMode.DOWN);
+            return orderQuantity.multiply(formalizedPrice);
         } else {
             return orderQuantity;
         }

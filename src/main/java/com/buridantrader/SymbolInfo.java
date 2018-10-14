@@ -13,20 +13,35 @@ public class SymbolInfo {
     private final BigDecimal minQuantity;
     private final BigDecimal maxQuantity;
     private final BigDecimal quantityStepSize;
+    private final BigDecimal minPrice;
+    private final BigDecimal maxPrice;
+    private final BigDecimal priceTickSize;
     private final DecimalFormalizer quantityFormalizer;
+    private final DecimalFormalizer priceFormalizer;
 
     public SymbolInfo(@Nonnull Symbol symbol,
                       @Nonnull BigDecimal minQuantity,
                       @Nonnull BigDecimal maxQuantity,
-                      @Nonnull BigDecimal quantityStepSize) {
+                      @Nonnull BigDecimal quantityStepSize,
+                      @Nonnull BigDecimal minPrice,
+                      @Nonnull BigDecimal maxPrice,
+                      @Nonnull BigDecimal priceTickSize) {
         this.symbol = symbol;
         this.minQuantity = minQuantity;
         this.maxQuantity = maxQuantity;
         this.quantityStepSize = quantityStepSize;
+        this.minPrice = minPrice;
+        this.maxPrice = maxPrice;
+        this.priceTickSize = priceTickSize;
         this.quantityFormalizer = new DecimalFormalizer(
                 minQuantity,
                 maxQuantity,
                 quantityStepSize
+        );
+        this.priceFormalizer = new DecimalFormalizer(
+                minPrice,
+                maxPrice,
+                priceTickSize
         );
     }
 
@@ -55,6 +70,11 @@ public class SymbolInfo {
         return quantityFormalizer;
     }
 
+    @Nonnull
+    public DecimalFormalizer getPriceFormalizer() {
+        return priceFormalizer;
+    }
+
     @Override
     public boolean equals(Object other) {
         if (this == other) {
@@ -67,7 +87,10 @@ public class SymbolInfo {
         return symbol.equals(that.symbol) &&
                 minQuantity.equals(that.minQuantity) &&
                 maxQuantity.equals(that.maxQuantity) &&
-                quantityStepSize.equals(that.quantityStepSize);
+                quantityStepSize.equals(that.quantityStepSize) &&
+                minPrice.equals(that.minPrice) &&
+                maxPrice.equals(that.maxPrice) &&
+                priceTickSize.equals(that.priceTickSize);
     }
 
     @Override
@@ -76,6 +99,9 @@ public class SymbolInfo {
                 symbol,
                 minQuantity,
                 maxQuantity,
-                quantityStepSize);
+                quantityStepSize,
+                minPrice,
+                maxPrice,
+                priceTickSize);
     }
 }

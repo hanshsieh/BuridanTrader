@@ -44,6 +44,7 @@ public class PlanWorker implements Runnable {
             try {
                 executePlan(optPlan.get());
             } catch (Exception ex) {
+                planner.markLastPlanAsFailed();
                 LOGGER.error("Fail to execute the plan, skipping it and sleep a while", ex);
                 sleep();
             }
@@ -83,7 +84,7 @@ public class PlanWorker implements Runnable {
         );
         try {
             LOGGER.info("Placing an order. symbol={}, orderSide={}, quantity={}", symbol, orderSide, quantity);
-            client.newOrder(newOrder);
+            client.newOrderTest(newOrder);
         } catch (Exception ex) {
             throw new IOException("Fail to execute order", ex);
         }
