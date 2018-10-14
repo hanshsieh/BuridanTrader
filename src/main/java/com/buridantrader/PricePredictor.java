@@ -12,7 +12,7 @@ public class PricePredictor {
 
     // TODO Make it configurable
     private static final long PREDICTION_PERIOD_MS = 1000 * 60 * 60;
-    private static final BigDecimal WEIGHT_MUL_FACTOR = new BigDecimal("0.949660");
+    private static final BigDecimal WEIGHT_MUL_FACTOR = new BigDecimal("0.95");
     private static final BigDecimal SECONDS_PER_MINUTE = new BigDecimal(60);
     private static final int MIN_PRECISION = 6;
 

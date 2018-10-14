@@ -14,11 +14,13 @@ import java.util.concurrent.Semaphore;
 public class TradingPlanner {
     private static final Logger LOGGER = LoggerFactory.getLogger(TradingPlanner.class);
     // TODO Make it configurable
-    private static final long COOL_DOWN_MS = 1000 * 60 * 10;
+    private static final long SUCCESS_COOL_DOWN_MS = 1000 * 60 * 10;
+    private static final long FAILURE_COOL_DOWN_MS = 1000 * 10;
     private final PlanProducer planProducer;
     private final System system;
     private Semaphore semaphore = new Semaphore(1);
     private Instant lastPlanTime = null;
+    private long nextCooldownMs = SUCCESS_COOL_DOWN_MS;
 
     public TradingPlanner(@Nonnull PlanProducer planProducer) {
         this(planProducer, new System());
@@ -38,10 +40,15 @@ public class TradingPlanner {
             waitUntilReadyToMakePlan();
             TradingPlan plan = planProducer.get();
             lastPlanTime = Instant.ofEpochMilli(system.currentTimeMillis());
+            nextCooldownMs = SUCCESS_COOL_DOWN_MS;
             return plan;
         } finally {
             semaphore.release();
         }
+    }
+
+    public void markLastPlanAsFailed() {
+        nextCooldownMs = FAILURE_COOL_DOWN_MS;
     }
 
     private void waitUntilReadyToMakePlan() throws InterruptedException {
@@ -57,6 +64,6 @@ public class TradingPlanner {
         if (lastPlanTime == null) {
             return 0;
         }
-        return Math.max(system.currentTimeMillis() - lastPlanTime.toEpochMilli() + COOL_DOWN_MS, 0);
+        return Math.max(lastPlanTime.toEpochMilli() + nextCooldownMs - system.currentTimeMillis(), 0);
     }
 }

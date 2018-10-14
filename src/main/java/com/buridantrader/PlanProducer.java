@@ -17,14 +17,17 @@ public class PlanProducer {
     private static class Candidate {
         public final Asset asset;
         public final PricePrediction pricePrediction;
-        public final BigDecimal balanceValue;
+        public final BigDecimal freeQuantity;
+        public final BigDecimal freeValue;
         public Candidate(
                 @Nonnull Asset asset,
                 @Nonnull PricePrediction pricePrediction,
-                @Nonnull BigDecimal balanceValue) {
+                @Nonnull BigDecimal freeQuantity,
+                @Nonnull BigDecimal freeValue) {
             this.asset = asset;
             this.pricePrediction = pricePrediction;
-            this.balanceValue = balanceValue;
+            this.freeQuantity = freeQuantity;
+            this.freeValue = freeValue;
         }
     }
 
@@ -86,10 +89,11 @@ public class PlanProducer {
             }
             Optional<List<Order>> optOrders;
             try {
+                BigDecimal quantity = sourceAsset.getBalance();
                 optOrders = tradingPathFinder.findPathOfOrders(
                         sourceCurrency,
                         targetCurrency,
-                        sourceAsset.getBalance());
+                        quantity);
             } catch (ValueException ex) {
                 continue;
             }
@@ -98,8 +102,8 @@ public class PlanProducer {
             }
             BigDecimal growthDiff = calGrowthRateDiff(source, target, optOrders.get());
             LOGGER.debug("Growth rate diff {} relative to {} is {}",
-                    source.asset.getCurrency(),
                     target.asset.getCurrency(),
+                    source.asset.getCurrency(),
                     growthDiff);
             if (growthDiff.compareTo(maxGrowthRateDiff) > 0) {
                 mostProfitableOrders = optOrders;
@@ -119,12 +123,14 @@ public class PlanProducer {
         BigDecimal sourceGrowthRate = source.pricePrediction.getGrowthPerSec();
         BigDecimal targetGrowthRate = target.pricePrediction.getGrowthPerSec();
 
+        Order lastOrder = orders.get(orders.size() - 1);
+
         // If no convert, after time t, the value will be:
         // sourcePrice * sourceQuantity + sourceGrowthRate * t * sourceQuantity
         // If convert, after time t, the value will be:
         // sourcePrice * sourceQuantity - transactionFeeRate * sourcePrice * sourceQuantity
         // + targetGrowthRate * t * targetQuantity
-        BigDecimal targetQuantity = tradingPathFinder.getOrderTargetQuantity(orders.get(orders.size() - 1));
+        BigDecimal targetQuantity = tradingPathFinder.getOrderTargetQuantity(lastOrder);
         BigDecimal growthAfterConvert = targetGrowthRate.multiply(MEASURE_PERIOD_SEC)
                 .multiply(targetQuantity);
 
@@ -132,12 +138,12 @@ public class PlanProducer {
         if (sourceGrowthRate.signum() >= 0) {
             BigDecimal totalFee = TRADING_FEE_RATE
                     .multiply(new BigDecimal(orders.size()))
-                    .multiply(source.balanceValue);
+                    .multiply(source.freeValue);
             growthAfterConvert = growthAfterConvert.subtract(totalFee);
         }
 
         BigDecimal growthNoConvert = sourceGrowthRate.multiply(MEASURE_PERIOD_SEC)
-                .multiply(source.asset.getBalance());
+                .multiply(source.freeQuantity);
         return growthAfterConvert.subtract(growthNoConvert);
     }
 
@@ -148,7 +154,7 @@ public class PlanProducer {
                 // TODO Should allow more fine-grain control of how to keep the quantity of
                 // BNB
                 .filter((c) -> !EXCLUDE_CURRENCIES.contains(c.asset.getCurrency())
-                        && c.balanceValue.compareTo(MIN_TRADING_QUOTE_QUANTITY) >= 0)
+                        && c.freeValue.compareTo(MIN_TRADING_QUOTE_QUANTITY) >= 0)
                 .sorted(Comparator.comparing(e -> e.pricePrediction.getGrowthPerSec()))
                 .collect(Collectors.toList());
     }
@@ -159,20 +165,27 @@ public class PlanProducer {
         // FIXME Should look at all currencies, not asset
         for (Asset asset : assetViewer.getAccountAssets()) {
 
-            BigDecimal value;
+            BigDecimal freeValue;
+
+            // TODO Allow the "free quantity" to be limited by config
+            BigDecimal freeQuantity = asset.getBalance();
+            if (asset.getCurrency().getName().equals("USDT")
+                    && freeQuantity.compareTo(new BigDecimal(10)) > 0) {
+                freeQuantity = new BigDecimal(10);
+            }
             try {
                 Optional<BigDecimal> optValue = priceConverter.getRelativePrice(
-                        asset.getCurrency(), QUOTE_CURRENCY, asset.getBalance());
+                        asset.getCurrency(), QUOTE_CURRENCY, freeQuantity);
                 if (!optValue.isPresent()) {
                     LOGGER.info("Unable to get the price of {} relative to {}. Skipping the asset",
                             asset.getCurrency(), QUOTE_CURRENCY);
                     continue;
                 }
-                value = optValue.get();
+                freeValue = optValue.get();
             } catch (ValueException ex) {
                 LOGGER.debug("The balance of asset {} is ignored because the balance is {}",
                         asset.getCurrency(), ex.getReason());
-                value = BigDecimal.ZERO;
+                freeValue = BigDecimal.ZERO;
             }
 
             PricePrediction prediction;
@@ -185,12 +198,13 @@ public class PlanProducer {
                 continue;
             }
 
-            LOGGER.debug("For asset {}, growth per sec: {}, total value relative to {}: {}",
+            LOGGER.debug("For asset {}, growth per sec: {}, free quantity: {}, free value relative to {}: {}",
                     asset.getCurrency(),
                     prediction.getGrowthPerSec(),
+                    freeQuantity,
                     QUOTE_CURRENCY,
-                    value);
-            candidates.add(new Candidate(asset, prediction, value));
+                    freeValue);
+            candidates.add(new Candidate(asset, prediction, freeQuantity, freeValue));
         }
         return candidates;
     }

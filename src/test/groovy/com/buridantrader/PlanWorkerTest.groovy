@@ -83,6 +83,7 @@ class PlanWorkerTest extends Specification {
         1 * tradingPlanner.nextPlan() >> plan
         1 * client.newOrder(_ as NewOrder) >> {throw new RuntimeException()}
         1 * system.sleep(3000)
+        1 * tradingPlanner.markLastPlanAsFailed()
         0 * _._
     }
 

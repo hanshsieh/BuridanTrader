@@ -32,42 +32,65 @@ public class SymbolFetcher {
         } catch (Exception ex) {
             throw new IOException("Fail to get exchange information", ex);
         }
-        exchangeInfo.getSymbols().forEach((symbolInfo -> {
-
-            if (!SymbolStatus.TRADING.equals(symbolInfo.getStatus())) {
-                LOGGER.debug("Symbol {} not in TRADING status. Skip it.",
-                        symbolInfo.getSymbol());
-                return;
-            }
-
-            Optional<SymbolFilter> optLotSizeFilter = getLotSizeSymbolFilter(symbolInfo);
-            if (!optLotSizeFilter.isPresent()) {
-                LOGGER.debug("Symbol {} doesn't have LOT_SIZE or PRICE_FILTER filter. Skip it.",
-                        symbolInfo.getSymbol());
-                return;
-            }
-            SymbolFilter lotSizeFilter = optLotSizeFilter.get();
-
-            BigDecimal minQuantity = new BigDecimal(lotSizeFilter.getMinQty());
-            BigDecimal maxQuantity = new BigDecimal(lotSizeFilter.getMaxQty());
-            BigDecimal quantityStepSize = new BigDecimal(lotSizeFilter.getStepSize());
-
-            Currency baseCurrency = new Currency(symbolInfo.getBaseAsset());
-            Currency quoteCurrency = new Currency(symbolInfo.getQuoteAsset());
-            symbolInfos.add(new SymbolInfo(
-                    new Symbol(baseCurrency, quoteCurrency),
-                    minQuantity,
-                    maxQuantity,
-                    quantityStepSize));
-        }));
+        exchangeInfo.getSymbols().forEach((symbolInfo ->
+                buildSymbolInfo(symbolInfo).ifPresent(symbolInfos::add)));
         return symbolInfos;
     }
 
     @Nonnull
-    private Optional<SymbolFilter> getLotSizeSymbolFilter(
+    private Optional<SymbolInfo> buildSymbolInfo(
             @Nonnull com.binance.api.client.domain.general.SymbolInfo symbolInfo) {
+
+        if (!SymbolStatus.TRADING.equals(symbolInfo.getStatus())) {
+            LOGGER.debug("Symbol {} not in TRADING status. Skip it.",
+                    symbolInfo.getSymbol());
+            return Optional.empty();
+        }
+
+        Optional<SymbolFilter> optLotSizeFilter = getSymbolFilter(symbolInfo, FilterType.LOT_SIZE);
+        if (!optLotSizeFilter.isPresent()) {
+            LOGGER.debug("Symbol {} doesn't have LOT_SIZE filter. Skip it.",
+                    symbolInfo.getSymbol());
+            return Optional.empty();
+        }
+        SymbolFilter lotSizeFilter = optLotSizeFilter.get();
+
+        BigDecimal minQuantity = new BigDecimal(lotSizeFilter.getMinQty());
+        BigDecimal maxQuantity = new BigDecimal(lotSizeFilter.getMaxQty());
+        BigDecimal quantityStepSize = new BigDecimal(lotSizeFilter.getStepSize());
+
+        Optional<SymbolFilter> optPriceFilter = getSymbolFilter(symbolInfo, FilterType.PRICE_FILTER);
+        if (!optPriceFilter.isPresent()) {
+            LOGGER.debug("Symbol {} doesn't have PRICE_FILTER filter. Skip it.",
+                    symbolInfo.getSymbol());
+            return Optional.empty();
+        }
+        SymbolFilter priceFilter = optPriceFilter.get();
+
+        BigDecimal minPrice = new BigDecimal(priceFilter.getMinPrice());
+        BigDecimal maxPrice = new BigDecimal(priceFilter.getMaxPrice());
+        BigDecimal priceTickSize = new BigDecimal(priceFilter.getTickSize());
+
+        Currency baseCurrency = new Currency(symbolInfo.getBaseAsset());
+        Currency quoteCurrency = new Currency(symbolInfo.getQuoteAsset());
+
+        return Optional.of(new SymbolInfo(
+                new Symbol(baseCurrency, quoteCurrency),
+                minQuantity,
+                maxQuantity,
+                quantityStepSize,
+                minPrice,
+                maxPrice,
+                priceTickSize));
+    }
+
+
+    @Nonnull
+    private Optional<SymbolFilter> getSymbolFilter(
+            @Nonnull com.binance.api.client.domain.general.SymbolInfo symbolInfo,
+            @Nonnull FilterType filterType) {
         return symbolInfo.getFilters().stream()
-                .filter((f) -> FilterType.LOT_SIZE.equals(f.getFilterType()))
+                .filter((f) -> filterType.equals(f.getFilterType()))
                 .findFirst();
     }
 }
