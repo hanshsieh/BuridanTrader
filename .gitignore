@@ -26,6 +26,7 @@ hs_err_pid*
 
 # IntelliJ
 .idea/*
+*.iml
 
 src/main/java/Test.java
 src/main/resources/secrets/*
