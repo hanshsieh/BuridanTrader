@@ -1,8 +1,8 @@
 package com.buridantrader;
 
-import jdk.nashorn.internal.ir.annotations.Immutable;
 
 import javax.annotation.Nonnull;
+import javax.annotation.concurrent.Immutable;
 import javax.annotation.concurrent.ThreadSafe;
 import java.math.BigDecimal;
 import java.util.Objects;

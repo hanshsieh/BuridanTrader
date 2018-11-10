@@ -4,6 +4,9 @@ import spock.lang.Specification
 
 import java.time.Instant
 
+/**
+ * Test class for {@link CurrencyPriceViewer}.
+ */
 class CurrencyPriceViewerTest extends Specification {
 
     def symbolPriceViewer = Mock(SymbolPriceViewer)

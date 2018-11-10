@@ -6,21 +6,31 @@ import java.util.List;
 import java.util.stream.Collectors;
 
 import javax.annotation.Nonnull;
+import javax.annotation.concurrent.Immutable;
+import javax.annotation.concurrent.ThreadSafe;
 
+@ThreadSafe
+@Immutable
 public class LinearRegressionFinder {
+
+    private final MathContext mathContext;
+
+    public LinearRegressionFinder(@Nonnull MathContext mathContext) {
+        this.mathContext = mathContext;
+    }
 
     /**
      * Find the simple regression line for the given points.
      * Unless the line is vertical, the line will have the coefficient of y being 1.
      *
      * @param points Points.
-     * @param mathContext Math context used for the calculation.
      * @return Line.
      * @throws ArithmeticException Fail to calculate the line.
+     * @throws IllegalArgumentException The linear regression line is vertical.
      */
     @Nonnull
-    public Line findLinearRegression(@Nonnull List<Point> points, @Nonnull MathContext mathContext)
-        throws ArithmeticException {
+    public RegressionLine findLinearRegression(@Nonnull List<Point> points)
+        throws ArithmeticException, IllegalArgumentException {
         BigDecimal xMean = mean(points.stream().map(Point::getX).collect(Collectors.toList()), mathContext);
         BigDecimal yMean = mean(points.stream().map(Point::getY).collect(Collectors.toList()), mathContext);
         BigDecimal numerator = BigDecimal.ZERO;
@@ -32,14 +42,14 @@ public class LinearRegressionFinder {
             denominator = denominator.add(xDiff.pow(2, mathContext));
         }
         if (denominator.signum() == 0) {
-            // x = (mean of x)
-            return new Line(BigDecimal.ONE, BigDecimal.ZERO, xMean);
+            // Vertical line
+            throw new IllegalArgumentException("The linear regression line of the points is vertical");
         }
         BigDecimal slope = numerator.divide(denominator, mathContext);
         BigDecimal intercept = yMean.subtract(slope.multiply(xMean, mathContext), mathContext);
         // y = (slope) x + (intercept)
         // -> -(slope) x + y = (intercept)
-        return new Line(slope.negate(mathContext), BigDecimal.ONE, intercept);
+        return new RegressionLine(slope, intercept, mathContext);
     }
 
     @Nonnull
