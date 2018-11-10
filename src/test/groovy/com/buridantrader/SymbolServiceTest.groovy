@@ -13,33 +13,28 @@ class SymbolServiceTest extends Specification {
     def "get symbol by name"() {
         given:
         def symbolInfosV1 = [
-            new SymbolInfo(
-                    new Symbol(new Currency("BTC"), new Currency("USDT")),
-                    new BigDecimal("0.012"),
-                    new BigDecimal("100000.0"),
-                    new BigDecimal("0.01")),
-            new SymbolInfo(
-                    new Symbol(new Currency("ETH"), new Currency("BTC")),
-                    new BigDecimal("0.013"),
-                    new BigDecimal("200000.0"),
-                    new BigDecimal("0.02"))
+            Mock(SymbolInfo) {
+                getSymbol() >> new Symbol(new Currency("BTC"), new Currency("USDT"))
+                0 * _
+            },
+            Mock(SymbolInfo) {
+                getSymbol() >> new Symbol(new Currency("ETH"), new Currency("BTC"))
+                0 * _
+            }
         ]
         def symbolInfosV2 = [
-                new SymbolInfo(
-                        new Symbol(new Currency("BTC"), new Currency("USDT")),
-                        new BigDecimal("0.012"),
-                        new BigDecimal("100000.0"),
-                        new BigDecimal("0.01")),
-                new SymbolInfo(
-                        new Symbol(new Currency("ETH"), new Currency("BTC")),
-                        new BigDecimal("0.013"),
-                        new BigDecimal("200000.0"),
-                        new BigDecimal("0.02")),
-                new SymbolInfo(
-                        new Symbol(new Currency("ETH"), new Currency("USDT")),
-                        new BigDecimal("0.014"),
-                        new BigDecimal("200000.1"),
-                        new BigDecimal("0.03"))
+                Mock(SymbolInfo) {
+                    getSymbol() >> new Symbol(new Currency("BTC"), new Currency("USDT"))
+                    0 * _
+                },
+                Mock(SymbolInfo) {
+                    getSymbol() >> new Symbol(new Currency("ETH"), new Currency("BTC"))
+                    0 * _
+                },
+                Mock(SymbolInfo) {
+                    getSymbol() >> new Symbol(new Currency("ETH"), new Currency("USDT"))
+                    0 * _
+                }
         ]
 
         when:
@@ -119,16 +114,14 @@ class SymbolServiceTest extends Specification {
     def "get all symbol info"() {
         given:
         def symbolInfos = [
-                new SymbolInfo(
-                        new Symbol(new Currency("BTC"), new Currency("USDT")),
-                        new BigDecimal("0.012"),
-                        new BigDecimal("100000.0"),
-                        new BigDecimal("0.01")),
-                new SymbolInfo(
-                        new Symbol(new Currency("ETH"), new Currency("BTC")),
-                        new BigDecimal("0.013"),
-                        new BigDecimal("200000.0"),
-                        new BigDecimal("0.02"))
+                Mock(SymbolInfo) {
+                    getSymbol() >> new Symbol(new Currency("BTC"), new Currency("USDT"))
+                    0 * _
+                },
+                Mock(SymbolInfo) {
+                    getSymbol() >> new Symbol(new Currency("ETH"), new Currency("BTC"))
+                    0 * _
+                }
         ]
 
         when:
@@ -143,16 +136,14 @@ class SymbolServiceTest extends Specification {
     def "get symbol info"() {
         given:
         def symbolInfos = [
-                new SymbolInfo(
-                        new Symbol(new Currency("BTC"), new Currency("USDT")),
-                        new BigDecimal("0.012"),
-                        new BigDecimal("100000.0"),
-                        new BigDecimal("0.01")),
-                new SymbolInfo(
-                        new Symbol(new Currency("ETH"), new Currency("BTC")),
-                        new BigDecimal("0.013"),
-                        new BigDecimal("200000.0"),
-                        new BigDecimal("0.02"))
+                Mock(SymbolInfo) {
+                    getSymbol() >> new Symbol(new Currency("BTC"), new Currency("USDT"))
+                    0 * _
+                },
+                Mock(SymbolInfo) {
+                    getSymbol() >> new Symbol(new Currency("ETH"), new Currency("BTC"))
+                    0 * _
+                }
         ]
 
         when:

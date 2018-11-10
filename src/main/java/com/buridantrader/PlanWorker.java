@@ -84,7 +84,7 @@ public class PlanWorker implements Runnable {
         );
         try {
             LOGGER.info("Placing an order. symbol={}, orderSide={}, quantity={}", symbol, orderSide, quantity);
-            client.newOrderTest(newOrder);
+            client.newOrder(newOrder);
         } catch (Exception ex) {
             throw new IOException("Fail to execute order", ex);
         }

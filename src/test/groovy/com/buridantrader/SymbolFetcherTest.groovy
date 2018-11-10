@@ -7,6 +7,9 @@ import com.binance.api.client.domain.general.SymbolFilter
 import com.binance.api.client.domain.general.SymbolStatus
 import spock.lang.Specification
 
+/**
+ * Test class for {@link SymbolFetcher}..
+ */
 class SymbolFetcherTest extends Specification {
 
     def client = Mock(BinanceApiRestClient)
@@ -31,7 +34,13 @@ class SymbolFetcherTest extends Specification {
                            minQty: "0.001",
                            maxQty: "100000.123",
                            stepSize: "0.002"
-                       )
+                       ),
+                       new SymbolFilter(
+                           filterType: FilterType.PRICE_FILTER,
+                           minPrice: "0.002",
+                           maxPrice: "100001.123",
+                           tickSize: "0.003"
+                       ),
                     ]),
             new com.binance.api.client.domain.general.SymbolInfo(
                     symbol: "ETHBTC",
@@ -66,6 +75,9 @@ class SymbolFetcherTest extends Specification {
             assert it.minQuantity == new BigDecimal("0.001")
             assert it.maxQuantity == new BigDecimal("100000.123")
             assert it.quantityStepSize == new BigDecimal("0.002")
+            assert it.minPrice == new BigDecimal("0.002")
+            assert it.maxPrice == new BigDecimal("100001.123")
+            assert it.priceTickSize == new BigDecimal("0.003")
             return true
         }
     }

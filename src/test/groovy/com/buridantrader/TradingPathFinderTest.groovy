@@ -30,16 +30,14 @@ class TradingPathFinderTest extends Specification {
         def symbol1 = new Symbol(middleCurrency, targetCurrency);
         def symbol2 = new Symbol(middleCurrency, sourceCurrency)
         def symbolInfos = [
-                new SymbolInfo(
-                        symbol1,
-                        new BigDecimal("0.012"),
-                        new BigDecimal("100000.0"),
-                        new BigDecimal("0.01")),
-                new SymbolInfo(
-                        symbol2,
-                        new BigDecimal("0.013"),
-                        new BigDecimal("200000.0"),
-                        new BigDecimal("0.02"))
+                Mock(SymbolInfo) {
+                    getSymbol() >> symbol1
+                    0 * _
+                },
+                Mock(SymbolInfo) {
+                    getSymbol() >> symbol2
+                    0 * _
+                }
         ]
         def tradingPaths = Mock(TradingPaths)
         def pathStep1 = new PathStep(symbol2, 2)
@@ -96,6 +94,9 @@ class TradingPathFinderTest extends Specification {
         def quantityFormalizer1 = Mock(DecimalFormalizer)
         def quantityFormalizer2 = Mock(DecimalFormalizer)
         def quantityFormalizer3 = Mock(DecimalFormalizer)
+        def priceFormalizer1 = Mock(DecimalFormalizer)
+        def priceFormalizer2 = Mock(DecimalFormalizer)
+        def priceFormalizer3 = Mock(DecimalFormalizer)
         def symbolInfos = [
             symbolInfo1,
             symbolInfo2,
@@ -113,6 +114,9 @@ class TradingPathFinderTest extends Specification {
         (1 .. _) * symbolInfo1.getSymbol() >> symbol1
         (1 .. _) * symbolInfo2.getSymbol() >> symbol2
         (1 .. _) * symbolInfo3.getSymbol() >> symbol3
+        (1 .. _) * symbolInfo1.getPriceFormalizer() >> priceFormalizer1
+        (1 .. _) * symbolInfo2.getPriceFormalizer() >> priceFormalizer2
+        (1 .. _) * symbolInfo3.getPriceFormalizer() >> priceFormalizer3
         (1 .. _) * symbolInfo1.getQuantityStepSize() >> new BigDecimal("0.0002")
         0 * symbolInfo2.getQuantityStepSize()
         (1 .. _) * symbolInfo3.getQuantityStepSize() >> new BigDecimal("0.003")
@@ -128,12 +132,15 @@ class TradingPathFinderTest extends Specification {
         1 * symbolProvider.getSymbolInfo(symbol1) >> Optional.of(symbolInfos[0])
         1 * symbolProvider.getSymbolInfo(symbol2) >> Optional.of(symbolInfos[1])
         1 * symbolProvider.getSymbolInfo(symbol3) >> Optional.of(symbolInfos[2])
-        1 * symbolPriceProvider.getPrice(symbol1) >> Optional.of(new BigDecimal("2.16"))
-        1 * symbolPriceProvider.getPrice(symbol2) >> Optional.of(new BigDecimal("3.1415926"))
-        1 * symbolPriceProvider.getPrice(symbol3) >> Optional.of(new BigDecimal("0.0123"))
+        1 * symbolPriceProvider.getPrice(symbol1) >> Optional.of(new BigDecimal("2.15"))
+        1 * symbolPriceProvider.getPrice(symbol2) >> Optional.of(new BigDecimal("3.1415927"))
+        1 * symbolPriceProvider.getPrice(symbol3) >> Optional.of(new BigDecimal("0.0122"))
         1 * quantityFormalizer1.formalize(new BigDecimal("46.2962"), RoundingMode.DOWN) >> new BigDecimal("46.2961")
         1 * quantityFormalizer2.formalize(new BigDecimal("46.2961"), RoundingMode.DOWN) >> new BigDecimal("46.2960")
         1 * quantityFormalizer3.formalize(new BigDecimal("11824.648"), RoundingMode.DOWN) >> new BigDecimal("11824.647")
+        1 * priceFormalizer1.formalize(new BigDecimal("2.15"), RoundingMode.UP) >> new BigDecimal("2.16")
+        1 * priceFormalizer2.formalize(new BigDecimal("3.1415927"), RoundingMode.DOWN) >> new BigDecimal("3.1415926")
+        1 * priceFormalizer3.formalize(new BigDecimal("0.0122"), RoundingMode.UP) >> new BigDecimal("0.0123")
 
         path.get() == [
                 // Source quantity: 100.0

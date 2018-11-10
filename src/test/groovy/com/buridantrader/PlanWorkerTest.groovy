@@ -5,6 +5,9 @@ import com.binance.api.client.domain.OrderType
 import com.binance.api.client.domain.account.NewOrder
 import spock.lang.Specification
 
+/**
+ * Test class for {@link PlanWorker}.
+ */
 class PlanWorkerTest extends Specification {
 
     def tradingPlanner = Mock(TradingPlanner)

@@ -74,14 +74,15 @@ public class SymbolFetcher {
         Currency baseCurrency = new Currency(symbolInfo.getBaseAsset());
         Currency quoteCurrency = new Currency(symbolInfo.getQuoteAsset());
 
-        return Optional.of(new SymbolInfo(
-                new Symbol(baseCurrency, quoteCurrency),
-                minQuantity,
-                maxQuantity,
-                quantityStepSize,
-                minPrice,
-                maxPrice,
-                priceTickSize));
+        return Optional.of(new SymbolInfo.Builder()
+                .setSymbol(new Symbol(baseCurrency, quoteCurrency))
+                .setMinQuantity(minQuantity)
+                .setMaxQuantity(maxQuantity)
+                .setQuantityStepSize(quantityStepSize)
+                .setMinPrice(minPrice)
+                .setMaxPrice(maxPrice)
+                .setPriceTickSize(priceTickSize)
+                .build());
     }
 
 

@@ -1,5 +1,7 @@
 package com.buridantrader;
 
+import com.google.common.base.Preconditions;
+
 import javax.annotation.Nonnull;
 import javax.annotation.concurrent.Immutable;
 import javax.annotation.concurrent.ThreadSafe;
@@ -9,6 +11,71 @@ import java.util.Objects;
 @ThreadSafe
 @Immutable
 public class SymbolInfo {
+
+    public static class Builder {
+        private Symbol symbol;
+        private BigDecimal minQuantity;
+        private BigDecimal maxQuantity;
+        private BigDecimal quantityStepSize;
+        private BigDecimal minPrice;
+        private BigDecimal maxPrice;
+        private BigDecimal priceTickSize;
+
+        @Nonnull
+        public Builder setSymbol(@Nonnull Symbol symbol) {
+            this.symbol = symbol;
+            return this;
+        }
+
+        @Nonnull
+        public Builder setMinQuantity(@Nonnull BigDecimal minQuantity) {
+            this.minQuantity = minQuantity;
+            return this;
+        }
+
+        @Nonnull
+        public Builder setMaxQuantity(@Nonnull BigDecimal maxQuantity) {
+            this.maxQuantity = maxQuantity;
+            return this;
+        }
+
+        @Nonnull
+        public Builder setQuantityStepSize(BigDecimal quantityStepSize) {
+            this.quantityStepSize = quantityStepSize;
+            return this;
+        }
+
+        @Nonnull
+        public Builder setMinPrice(@Nonnull BigDecimal minPrice) {
+            this.minPrice = minPrice;
+            return this;
+        }
+
+        @Nonnull
+        public Builder setMaxPrice(@Nonnull BigDecimal maxPrice) {
+            this.maxPrice = maxPrice;
+            return this;
+        }
+
+        @Nonnull
+        public Builder setPriceTickSize(@Nonnull BigDecimal priceTickSize) {
+            this.priceTickSize = priceTickSize;
+            return this;
+        }
+
+        @Nonnull
+        public SymbolInfo build() {
+            Preconditions.checkNotNull(symbol, "Symbol cannot be null");
+            Preconditions.checkNotNull(minQuantity, "Min quantity cannot be null");
+            Preconditions.checkNotNull(maxQuantity, "Max quantity cannot be null");
+            Preconditions.checkNotNull(quantityStepSize, "Quantity step size cannot be null");
+            Preconditions.checkNotNull(minPrice, "Min price cannot be null");
+            Preconditions.checkNotNull(maxPrice, "Max price cannot be null");
+            Preconditions.checkNotNull(priceTickSize, "Price tick size cannot be null");
+            return new SymbolInfo(this);
+        }
+    }
+
     private final Symbol symbol;
     private final BigDecimal minQuantity;
     private final BigDecimal maxQuantity;
@@ -19,20 +86,14 @@ public class SymbolInfo {
     private final DecimalFormalizer quantityFormalizer;
     private final DecimalFormalizer priceFormalizer;
 
-    public SymbolInfo(@Nonnull Symbol symbol,
-                      @Nonnull BigDecimal minQuantity,
-                      @Nonnull BigDecimal maxQuantity,
-                      @Nonnull BigDecimal quantityStepSize,
-                      @Nonnull BigDecimal minPrice,
-                      @Nonnull BigDecimal maxPrice,
-                      @Nonnull BigDecimal priceTickSize) {
-        this.symbol = symbol;
-        this.minQuantity = minQuantity;
-        this.maxQuantity = maxQuantity;
-        this.quantityStepSize = quantityStepSize;
-        this.minPrice = minPrice;
-        this.maxPrice = maxPrice;
-        this.priceTickSize = priceTickSize;
+    SymbolInfo(@Nonnull Builder builder) {
+        this.symbol = builder.symbol;
+        this.minQuantity = builder.minQuantity;
+        this.maxQuantity = builder.maxQuantity;
+        this.quantityStepSize = builder.quantityStepSize;
+        this.minPrice = builder.minPrice;
+        this.maxPrice = builder.maxPrice;
+        this.priceTickSize = builder.priceTickSize;
         this.quantityFormalizer = new DecimalFormalizer(
                 minQuantity,
                 maxQuantity,
@@ -63,6 +124,21 @@ public class SymbolInfo {
     @Nonnull
     public BigDecimal getQuantityStepSize() {
         return quantityStepSize;
+    }
+
+    @Nonnull
+    public BigDecimal getMinPrice() {
+        return minPrice;
+    }
+
+    @Nonnull
+    public BigDecimal getMaxPrice() {
+        return maxPrice;
+    }
+
+    @Nonnull
+    public BigDecimal getPriceTickSize() {
+        return priceTickSize;
     }
 
     @Nonnull

@@ -3,12 +3,19 @@ package com.buridantrader;
 import javax.annotation.Nonnull;
 import javax.annotation.Nullable;
 import java.math.BigDecimal;
+import java.util.Objects;
 
 public class PricePrediction {
+    private boolean profitable;
     private final BigDecimal growthPerSec;
 
-    public PricePrediction(@Nonnull BigDecimal growthPerSec) {
+    public PricePrediction(@Nonnull boolean profitable, @Nonnull BigDecimal growthPerSec) {
+        this.profitable = profitable;
         this.growthPerSec = growthPerSec;
+    }
+
+    public boolean isProfitable() {
+        return profitable;
     }
 
     @Nonnull
@@ -26,11 +33,12 @@ public class PricePrediction {
         }
 
         PricePrediction that = (PricePrediction) other;
-        return growthPerSec.equals(that.growthPerSec);
+        return profitable == that.profitable
+                && growthPerSec.equals(that.growthPerSec);
     }
 
     @Override
     public int hashCode() {
-        return growthPerSec.hashCode();
+        return Objects.hash(profitable, growthPerSec);
     }
 }
