@@ -2,7 +2,7 @@ package com.buridantrader;
 
 import java.math.BigDecimal;
 import java.math.MathContext;
-import java.util.Collection;
+import java.util.ArrayList;
 import java.util.List;
 import java.util.stream.Collectors;
 
@@ -15,7 +15,7 @@ public class RegressionLine {
     private final BigDecimal slope;
     private final BigDecimal interceptOfY;
     private final MathContext mathContext;
-    private final StandardDeviationCalculator standardDeviationCalculator;
+    private final VarianceCalculator varianceCalculator;
     private final MeanCalculator meanCalculator;
 
    /**
@@ -32,7 +32,7 @@ public class RegressionLine {
         this(slope,
                 interceptOfY,
                 mathContext,
-                new StandardDeviationCalculator(mathContext),
+                new VarianceCalculator(mathContext),
                 new MeanCalculator(mathContext));
     }
 
@@ -47,12 +47,12 @@ public class RegressionLine {
             @Nonnull BigDecimal slope,
             @Nonnull BigDecimal interceptOfY,
             @Nonnull MathContext mathContext,
-            @Nonnull StandardDeviationCalculator standardDeviationCalculator,
+            @Nonnull VarianceCalculator varianceCalculator,
             @Nonnull MeanCalculator meanCalculator) {
         this.slope = slope;
         this.interceptOfY = interceptOfY;
         this.mathContext = mathContext;
-        this.standardDeviationCalculator = standardDeviationCalculator;
+        this.varianceCalculator = varianceCalculator;
         this.meanCalculator = meanCalculator;
     }
 
@@ -84,24 +84,32 @@ public class RegressionLine {
         return xValue.multiply(slope).add(interceptOfY, mathContext);
     }
 
+    /**
+     * Gets the volatility for points for this line.
+     * The volatility is defined as below:
+     * Let ð to be the variance of the difference between
+     * the given points and the points on the line for a same X.
+     * Let Θ be the mean of the Y values on this line for the X values of the points.
+     * The volatility is calculated as ð / Θ.
+     * If Θ = 0, {@link ArithmeticException} is thrown.
+     *
+     * @param points Points.
+     * @return Volatility.
+     * @throws ArithmeticException Arithmetic error occurs. E.g. Θ = 0.
+     */
     @Nonnull
     public BigDecimal getVolatilityForPoints(@Nonnull List<Point> points) throws ArithmeticException {
+        List<BigDecimal> ysOnLine = new ArrayList<>();
         List<BigDecimal> residuals = points.stream()
                 .map((point) -> {
                     BigDecimal yOnLine = getYForX(point.getX());
+                    ysOnLine.add(yOnLine);
                     return point.getY().subtract(yOnLine);
                 })
                 .collect(Collectors.toList());
-        BigDecimal squaredStdDev = standardDeviationCalculator.calSquaredStandardDeviation(residuals);
-        BigDecimal meanOfY = meanCalculator.calMean(points
-                .stream()
-                .map(Point::getY)
-                .collect(Collectors.toList()));
-        if (meanOfY.signum() == 0) {
-            return BigDecimal.ONE;
-        } else {
-            return squaredStdDev.divide(meanOfY, mathContext);
-        }
+        BigDecimal variance = varianceCalculator.calVariance(residuals);
+        BigDecimal meanOfYOnLine = meanCalculator.calMean(ysOnLine);
+        return variance.divide(meanOfYOnLine, mathContext);
     }
 
 }

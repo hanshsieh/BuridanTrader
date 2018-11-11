@@ -8,16 +8,16 @@ import java.util.List;
 import java.util.stream.Collectors;
 
 @ThreadSafe
-public class StandardDeviationCalculator {
+public class VarianceCalculator {
 
     private final MathContext mathContext;
     private final MeanCalculator meanCalculator;
 
-    public StandardDeviationCalculator(@Nonnull MathContext mathContext) {
+    public VarianceCalculator(@Nonnull MathContext mathContext) {
         this(mathContext, new MeanCalculator(mathContext));
     }
 
-    public StandardDeviationCalculator(
+    public VarianceCalculator(
             @Nonnull MathContext mathContext,
             @Nonnull MeanCalculator meanCalculator) {
         this.mathContext = mathContext;
@@ -25,7 +25,7 @@ public class StandardDeviationCalculator {
     }
 
     @Nonnull
-    public BigDecimal calSquaredStandardDeviation(@Nonnull List<BigDecimal> values) {
+    public BigDecimal calVariance(@Nonnull List<BigDecimal> values) {
         BigDecimal mean = meanCalculator.calMean(values);
         BigDecimal meanOfSquares = meanCalculator.calMean(values.stream()
             .map((v) -> v.pow(2)).collect(Collectors.toList()));

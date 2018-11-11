@@ -13,10 +13,19 @@ import javax.annotation.concurrent.ThreadSafe;
 @Immutable
 public class LinearRegressionFinder {
 
+    private final MeanCalculator meanCalculator;
     private final MathContext mathContext;
 
-    public LinearRegressionFinder(@Nonnull MathContext mathContext) {
+    public LinearRegressionFinder(
+        @Nonnull MathContext mathContext) {
+        this(mathContext, new MeanCalculator(mathContext));
+    }
+
+    public LinearRegressionFinder(
+        @Nonnull MathContext mathContext,
+        @Nonnull MeanCalculator meanCalculator) {
         this.mathContext = mathContext;
+        this.meanCalculator = meanCalculator;
     }
 
     /**
@@ -31,8 +40,8 @@ public class LinearRegressionFinder {
     @Nonnull
     public RegressionLine findLinearRegression(@Nonnull List<Point> points)
         throws ArithmeticException, IllegalArgumentException {
-        BigDecimal xMean = mean(points.stream().map(Point::getX).collect(Collectors.toList()), mathContext);
-        BigDecimal yMean = mean(points.stream().map(Point::getY).collect(Collectors.toList()), mathContext);
+        BigDecimal xMean = meanCalculator.calMean(points.stream().map(Point::getX).collect(Collectors.toList()));
+        BigDecimal yMean = meanCalculator.calMean(points.stream().map(Point::getY).collect(Collectors.toList()));
         BigDecimal numerator = BigDecimal.ZERO;
         BigDecimal denominator = BigDecimal.ZERO;
         for (Point point : points) {
@@ -52,12 +61,4 @@ public class LinearRegressionFinder {
         return new RegressionLine(slope, intercept, mathContext);
     }
 
-    @Nonnull
-    private BigDecimal mean(@Nonnull List<BigDecimal> values, @Nonnull MathContext mathContext) {
-        BigDecimal sum = BigDecimal.ZERO;
-        for (BigDecimal value : values) {
-            sum = sum.add(value, mathContext);
-        }
-        return sum.divide(new BigDecimal(values.size()), mathContext);
-    }
 }

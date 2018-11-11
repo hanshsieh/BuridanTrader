@@ -16,6 +16,9 @@ public class MeanCalculator {
 
     @Nonnull
     public BigDecimal calMean(@Nonnull List<BigDecimal> values) {
+        if (values.isEmpty()) {
+            return BigDecimal.ZERO;
+        }
         BigDecimal sum = BigDecimal.ZERO;
         for (BigDecimal value : values) {
             sum = sum.add(value);

@@ -28,9 +28,9 @@ public class PredictionCalculator {
         int numPoints = points.size();
         List<Point> recentPoints = points.subList(numPoints / 2, numPoints);
         RegressionLine shortTermRegressionLine = linearRegressionFinder.findLinearRegression(recentPoints);
-        BigDecimal shortTermVolatility = longTermRegressionLine.getVolatilityForPoints(recentPoints);
+        BigDecimal shortTermVolatility = shortTermRegressionLine.getVolatilityForPoints(recentPoints);
         boolean profitable = true;
-        if (shortTermRegressionLine.getSlope().compareTo(BigDecimal.ZERO) < 0
+        if (longTermRegressionLine.getSlope().compareTo(BigDecimal.ZERO) < 0
                 || longTermVolatility.compareTo(MAX_LONG_TERM_VOLATILITY) > 0
                 || shortTermRegressionLine.getSlope().compareTo(BigDecimal.ZERO) < 0
                 || shortTermVolatility.compareTo(MAX_SHORT_LONG_TERM_VOLATILITY) > 0) {
