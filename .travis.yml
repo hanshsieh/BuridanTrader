@@ -1,1 +1,6 @@
 language: java
+install: |
+  git clone https://github.com/binance-exchange/binance-java-api.git
+  cd binance-java-api
+  mvn install
+  cd ../
