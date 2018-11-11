@@ -14,23 +14,6 @@ public class PlanProducer {
 
     private static final Logger LOGGER = LoggerFactory.getLogger(PlanProducer.class);
 
-    private static class Candidate {
-        public final Asset asset;
-        public final PricePrediction pricePrediction;
-        public final BigDecimal freeQuantity;
-        public final BigDecimal freeValue;
-        public Candidate(
-                @Nonnull Asset asset,
-                @Nonnull PricePrediction pricePrediction,
-                @Nonnull BigDecimal freeQuantity,
-                @Nonnull BigDecimal freeValue) {
-            this.asset = asset;
-            this.pricePrediction = pricePrediction;
-            this.freeQuantity = freeQuantity;
-            this.freeValue = freeValue;
-        }
-    }
-
     // TODO Make it configurable
     private static final BigDecimal MIN_TRADING_QUOTE_QUANTITY = new BigDecimal("0.05");
     private static final Currency QUOTE_CURRENCY = new Currency("USDT");
@@ -57,10 +40,10 @@ public class PlanProducer {
     @Nonnull
     public TradingPlan get() throws IOException {
         TradingPlan plan = new TradingPlan();
-        List<Candidate> candidates = buildAllCandidates();
-        List<Candidate> sources = findSourceCandidates(candidates);
-        for (Candidate source : sources) {
-            LOGGER.debug("Source asset: {}", source.asset.getCurrency());
+        List<CandidateAsset> candidates = buildAllCandidates();
+        List<CandidateAsset> sources = findSourceCandidates(candidates);
+        for (CandidateAsset source : sources) {
+            LOGGER.debug("Source asset: {}", source.getAsset().getCurrency());
             buildMostProfitableOrders(source, candidates)
                 .ifPresent((orders) -> orders.forEach(plan::addOrder));
         }
@@ -70,12 +53,12 @@ public class PlanProducer {
 
     @Nonnull
     private Optional<List<Order>> buildMostProfitableOrders(
-            @Nonnull Candidate source, @Nonnull List<Candidate> candidates) throws IOException {
-        Asset sourceAsset = source.asset;
+        @Nonnull CandidateAsset source, @Nonnull List<CandidateAsset> candidates) throws IOException {
+        Asset sourceAsset = source.getAsset();
         Optional<List<Order>> mostProfitableOrders = Optional.empty();
         BigDecimal maxGrowthRateDiff = BigDecimal.ZERO;
-        for (Candidate target : candidates) {
-            Asset targetAsset = target.asset;
+        for (CandidateAsset target : candidates) {
+            Asset targetAsset = target.getAsset();
 
             // TODO Should allow more fine-grain control of how to keep the quantity of
             // BNB
@@ -102,8 +85,8 @@ public class PlanProducer {
             }
             BigDecimal growthDiff = calGrowthRateDiff(source, target, optOrders.get());
             LOGGER.debug("Growth rate diff {} relative to {} is {}",
-                    target.asset.getCurrency(),
-                    source.asset.getCurrency(),
+                    target.getAsset().getCurrency(),
+                    source.getAsset().getCurrency(),
                     growthDiff);
             if (growthDiff.compareTo(maxGrowthRateDiff) > 0) {
                 mostProfitableOrders = optOrders;
@@ -116,12 +99,12 @@ public class PlanProducer {
 
     @Nonnull
     private BigDecimal calGrowthRateDiff(
-            @Nonnull Candidate source,
-            @Nonnull Candidate target,
+            @Nonnull CandidateAsset source,
+            @Nonnull CandidateAsset target,
             @Nonnull List<Order> orders) throws IOException {
 
-        BigDecimal sourceGrowthRate = source.pricePrediction.getGrowthPerSec();
-        BigDecimal targetGrowthRate = target.pricePrediction.getGrowthPerSec();
+        BigDecimal sourceGrowthRate = source.getPricePrediction().getGrowthPerSec();
+        BigDecimal targetGrowthRate = target.getPricePrediction().getGrowthPerSec();
 
         Order lastOrder = orders.get(orders.size() - 1);
 
@@ -138,30 +121,30 @@ public class PlanProducer {
         if (sourceGrowthRate.signum() >= 0) {
             BigDecimal totalFee = TRADING_FEE_RATE
                     .multiply(new BigDecimal(orders.size()))
-                    .multiply(source.freeValue);
+                    .multiply(source.getFreeValue());
             growthAfterConvert = growthAfterConvert.subtract(totalFee);
         }
 
         BigDecimal growthNoConvert = sourceGrowthRate.multiply(MEASURE_PERIOD_SEC)
-                .multiply(source.freeQuantity);
+                .multiply(source.getFreeQuantity());
         return growthAfterConvert.subtract(growthNoConvert);
     }
 
     @Nonnull
-    private List<Candidate> findSourceCandidates(@Nonnull List<Candidate> candidates) {
+    private List<CandidateAsset> findSourceCandidates(@Nonnull List<CandidateAsset> candidates) {
         return candidates.stream()
 
                 // TODO Should allow more fine-grain control of how to keep the quantity of
                 // BNB
-                .filter((c) -> !EXCLUDE_CURRENCIES.contains(c.asset.getCurrency())
-                        && c.freeValue.compareTo(MIN_TRADING_QUOTE_QUANTITY) >= 0)
-                .sorted(Comparator.comparing(e -> e.pricePrediction.getGrowthPerSec()))
+                .filter((c) -> !EXCLUDE_CURRENCIES.contains(c.getAsset().getCurrency())
+                        && c.getFreeValue().compareTo(MIN_TRADING_QUOTE_QUANTITY) >= 0)
+                .sorted(Comparator.comparing(e -> e.getPricePrediction().getGrowthPerSec()))
                 .collect(Collectors.toList());
     }
 
     @Nonnull
-    private List<Candidate> buildAllCandidates() throws IOException {
-        List<Candidate> candidates = new ArrayList<>();
+    private List<CandidateAsset> buildAllCandidates() throws IOException {
+        List<CandidateAsset> candidates = new ArrayList<>();
         // FIXME Should look at all currencies, not asset
         for (Asset asset : assetViewer.getAccountAssets()) {
 
@@ -204,7 +187,7 @@ public class PlanProducer {
                     freeQuantity,
                     QUOTE_CURRENCY,
                     freeValue);
-            candidates.add(new Candidate(asset, prediction, freeQuantity, freeValue));
+            candidates.add(new CandidateAsset(asset, prediction, freeQuantity, freeValue));
         }
         return candidates;
     }

@@ -20,7 +20,7 @@ public class TradingPathFinder {
     private final ShortestPathsResolver shortestPathsResolver;
     private final SymbolPriceService symbolPriceService;
     private final SymbolService symbolService;
-    private final System system;
+    private final SystemService system;
 
     // Be careful the referenced instance may be changed by other threads
     private Instant lastUpdateTime;
@@ -32,14 +32,14 @@ public class TradingPathFinder {
         this(symbolService,
                 symbolPriceService,
             new ShortestPathsResolver(),
-            new System());
+            new SystemService());
     }
 
     public TradingPathFinder(
             @Nonnull SymbolService symbolService,
             @Nonnull SymbolPriceService symbolPriceService,
             @Nonnull ShortestPathsResolver shortestPathsResolver,
-            @Nonnull System system) {
+            @Nonnull SystemService system) {
         this.symbolPriceService = symbolPriceService;
         this.symbolService = symbolService;
         this.shortestPathsResolver = shortestPathsResolver;
