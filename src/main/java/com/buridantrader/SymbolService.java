@@ -14,18 +14,18 @@ import java.util.*;
 public class SymbolService {
     private static final Logger LOGGER = LoggerFactory.getLogger(SymbolService.class);
     private static final long REFRESH_MS = 1000 * 60 * 10;
-    private final System system;
+    private final SystemService system;
     private final SymbolFetcher symbolFetcher;
     private Map<String, SymbolInfo> symbolMap;
     private Instant lastRefreshTime;
     private Instant timeOfVersion;
 
     public SymbolService(@Nonnull SymbolFetcher symbolFetcher) {
-        this(symbolFetcher, new System());
+        this(symbolFetcher, new SystemService());
     }
 
     public SymbolService(@Nonnull SymbolFetcher symbolFetcher,
-                         @Nonnull System system) {
+                         @Nonnull SystemService system) {
         this.symbolFetcher = symbolFetcher;
         this.system = system;
     }

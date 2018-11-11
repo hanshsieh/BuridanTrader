@@ -7,7 +7,7 @@ import java.time.Instant
 class SymbolServiceTest extends Specification {
 
     def symbolFetcher = Mock(SymbolFetcher)
-    def system = Mock(System)
+    def system = Mock(SystemService)
     SymbolService symbolService = new SymbolService(symbolFetcher, system)
 
     def "get symbol by name"() {

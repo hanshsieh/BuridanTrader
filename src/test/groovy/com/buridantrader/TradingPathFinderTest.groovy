@@ -11,7 +11,7 @@ class TradingPathFinderTest extends Specification {
     def symbolProvider = Mock(SymbolService)
     def symbolPriceProvider = Mock(SymbolPriceService)
     def shortestPathsResolver = Mock(ShortestPathsResolver)
-    def system = Mock(System)
+    def system = Mock(SystemService)
     def tradingPathFinder = new TradingPathFinder(symbolProvider, symbolPriceProvider, shortestPathsResolver, system)
 
     def "constructor"() {

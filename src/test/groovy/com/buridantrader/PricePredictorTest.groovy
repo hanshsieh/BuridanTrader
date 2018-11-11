@@ -8,7 +8,7 @@ class PricePredictorTest extends Specification {
 
     def currencyPriceViewer = Mock(CurrencyPriceViewer)
     def predicationCalculator = Mock(PredictionCalculator)
-    def system = Mock(System)
+    def system = Mock(SystemService)
     def pricePredictor = new PricePredictor(currencyPriceViewer, predicationCalculator, system)
 
     def "Get prediction with same currency"() {

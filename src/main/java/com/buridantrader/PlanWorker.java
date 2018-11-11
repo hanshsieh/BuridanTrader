@@ -20,18 +20,18 @@ public class PlanWorker implements Runnable {
 
     private final BinanceApiRestClient client;
 
-    private final System system;
+    private final SystemService system;
 
     public PlanWorker(
             @Nonnull TradingPlanner planner,
             @Nonnull BinanceApiRestClient client) {
-        this(planner, client, new System());
+        this(planner, client, new SystemService());
     }
 
     public PlanWorker(
             @Nonnull TradingPlanner planner,
             @Nonnull BinanceApiRestClient client,
-            @Nonnull System system) {
+            @Nonnull SystemService system) {
         this.planner = planner;
         this.client = client;
         this.system = system;

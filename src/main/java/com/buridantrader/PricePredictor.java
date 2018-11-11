@@ -15,16 +15,16 @@ public class PricePredictor {
     private static final MathContext MATH_CONTEXT = new MathContext(20);
 
     private final CurrencyPriceViewer currencyPriceViewer;
-    private final System system;
+    private final SystemService system;
     private final PredictionCalculator predictionCalculator;
 
     public PricePredictor(@Nonnull CurrencyPriceViewer priceViewer) {
-        this(priceViewer, new PredictionCalculator(MATH_CONTEXT), new System());
+        this(priceViewer, new PredictionCalculator(MATH_CONTEXT), new SystemService());
     }
     public PricePredictor(
             @Nonnull CurrencyPriceViewer currencyPriceViewer,
             @Nonnull PredictionCalculator predictionCalculator,
-            @Nonnull System system) {
+            @Nonnull SystemService system) {
         this.currencyPriceViewer = currencyPriceViewer;
         this.predictionCalculator = predictionCalculator;
         this.system = system;

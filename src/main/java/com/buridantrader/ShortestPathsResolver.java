@@ -13,13 +13,13 @@ import java.util.*;
 public class ShortestPathsResolver {
 
     private static final Logger LOGGER = LoggerFactory.getLogger(ShortestPathsResolver.class);
-    private final System system;
+    private final SystemService system;
 
     public ShortestPathsResolver() {
-        this(new System());
+        this(new SystemService());
     }
 
-    public ShortestPathsResolver(@Nonnull System system) {
+    public ShortestPathsResolver(@Nonnull SystemService system) {
         this.system = system;
     }
 

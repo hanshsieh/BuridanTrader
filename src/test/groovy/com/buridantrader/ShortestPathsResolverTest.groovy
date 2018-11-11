@@ -4,7 +4,7 @@ import spock.lang.Specification
 
 class ShortestPathsResolverTest extends Specification {
 
-    def system = Mock(System)
+    def system = Mock(SystemService)
     def resolver = new ShortestPathsResolver(system)
 
     def "resolve all shortest paths"() {

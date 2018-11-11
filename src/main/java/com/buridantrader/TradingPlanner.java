@@ -17,18 +17,18 @@ public class TradingPlanner {
     private static final long SUCCESS_COOL_DOWN_MS = 1000 * 60 * 10;
     private static final long FAILURE_COOL_DOWN_MS = 1000 * 10;
     private final PlanProducer planProducer;
-    private final System system;
+    private final SystemService system;
     private Semaphore semaphore = new Semaphore(1);
     private Instant lastPlanTime = null;
     private long nextCooldownMs = SUCCESS_COOL_DOWN_MS;
 
     public TradingPlanner(@Nonnull PlanProducer planProducer) {
-        this(planProducer, new System());
+        this(planProducer, new SystemService());
     }
 
     public TradingPlanner(
             @Nonnull PlanProducer planProducer,
-            @Nonnull System system) {
+            @Nonnull SystemService system) {
         this.planProducer = planProducer;
         this.system = system;
     }

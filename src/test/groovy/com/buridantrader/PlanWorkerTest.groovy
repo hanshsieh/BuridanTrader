@@ -12,7 +12,7 @@ class PlanWorkerTest extends Specification {
 
     def tradingPlanner = Mock(TradingPlanner)
     def client = Mock(BinanceApiRestClient)
-    def system = Mock(System)
+    def system = Mock(SystemService)
     PlanWorker planWorker
 
     def setup() {
