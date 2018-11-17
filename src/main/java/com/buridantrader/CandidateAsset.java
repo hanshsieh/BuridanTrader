@@ -5,6 +5,7 @@ import java.math.BigDecimal;
 import javax.annotation.Nonnull;
 
 class CandidateAsset {
+    private boolean eligibleForSource = true;
     private final Asset asset;
     private final PricePrediction pricePrediction;
     private final BigDecimal freeQuantity;
@@ -18,6 +19,14 @@ class CandidateAsset {
         this.pricePrediction = pricePrediction;
         this.freeQuantity = freeQuantity;
         this.freeValue = freeValue;
+    }
+
+    public boolean isEligibleForSource() {
+        return eligibleForSource;
+    }
+
+    public void setEligibleForSource(boolean eligibleForSource) {
+        this.eligibleForSource = eligibleForSource;
     }
 
     @Nonnull
