@@ -1,6 +1,7 @@
 package com.buridantrader;
 
-import com.buridantrader.exceptions.ValueException;
+import com.buridantrader.exceptions.NoSuchPathException;
+import com.buridantrader.exceptions.ValueLimitException;
 
 import javax.annotation.Nonnull;
 import java.io.IOException;
@@ -17,27 +18,22 @@ public class PriceConverter {
     }
 
     @Nonnull
-    public Optional<BigDecimal> getRelativePrice(
+    public BigDecimal getRelativePrice(
             @Nonnull Currency baseCurrency,
             @Nonnull Currency quoteCurrency,
             @Nonnull BigDecimal quantity
-    ) throws IOException, ValueException {
+    ) throws IOException, ValueLimitException, NoSuchPathException {
         if (baseCurrency.equals(quoteCurrency)) {
-            return Optional.of(quantity);
+            return quantity;
         }
-        Optional<List<Order>> optOrders = tradingPathFinder.findPathOfOrders(
+        List<Order> orders;
+
+        orders = tradingPathFinder.findPathOfOrders(
                 baseCurrency,
                 quoteCurrency,
                 quantity);
 
-        if (!optOrders.isPresent()) {
-            return Optional.empty();
-        }
-        List<Order> orders = optOrders.get();
-        if (orders.isEmpty()) {
-            return Optional.of(quantity);
-        }
         Order lastOrder = orders.get(orders.size() - 1);
-        return Optional.of(tradingPathFinder.getOrderTargetQuantity(lastOrder));
+        return tradingPathFinder.getOrderTargetQuantity(lastOrder);
     }
 }

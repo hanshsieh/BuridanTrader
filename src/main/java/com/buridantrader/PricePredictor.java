@@ -1,5 +1,7 @@
 package com.buridantrader;
 
+import com.buridantrader.exceptions.NoSuchPathException;
+
 import javax.annotation.Nonnull;
 import java.io.IOException;
 import java.math.BigDecimal;
@@ -33,7 +35,7 @@ public class PricePredictor {
     @Nonnull
     public PricePrediction getPrediction(
             @Nonnull Currency baseCurrency,
-            @Nonnull Currency quoteCurrency) throws IOException, IllegalArgumentException {
+            @Nonnull Currency quoteCurrency) throws IOException, NoSuchPathException {
 
         if (baseCurrency.equals(quoteCurrency)) {
             return new PricePrediction(true, BigDecimal.ZERO);

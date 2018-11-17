@@ -1,10 +1,14 @@
 package com.buridantrader
 
 import com.buridantrader.config.TradingConfig
-import com.buridantrader.exceptions.ValueException
+import com.buridantrader.exceptions.NoSuchPathException
+import com.buridantrader.exceptions.ValueLimitException
 import spock.lang.Specification
 import spock.lang.Unroll
 
+/**
+ * Test class for {@link PlanProducer}.
+ */
 class PlanProducerTest extends Specification {
 
     def tradingConfig = Mock(TradingConfig)
@@ -106,7 +110,7 @@ class PlanProducerTest extends Specification {
             new Currency("USDT"),
             new Currency("ETH"),
             new BigDecimal("20.1")
-        ) >> Optional.of(usdtToEthOrders)
+        ) >> usdtToEthOrders
         1 * tradingPathFinder.getOrderTargetQuantity(usdtToEthOrders[1]) >> new BigDecimal("19.1")
         (1 .. _) * tradingConfig.getMeasuringSec() >> 600
         (1 .. _) * tradingConfig.getTradingFeeRate() >> new BigDecimal("0.001")
@@ -153,7 +157,7 @@ class PlanProducerTest extends Specification {
                 new Currency("USDT"),
                 new Currency("ETH"),
                 new BigDecimal("20.1")
-        ) >> Optional.of(usdtToEthOrders)
+        ) >> usdtToEthOrders
         1 * tradingPathFinder.getOrderTargetQuantity(usdtToEthOrders[1]) >> new BigDecimal("0.01")
         (1 .. _) * tradingConfig.getMeasuringSec() >> 600
         0 * tradingConfig.getTradingFeeRate()
@@ -211,12 +215,12 @@ class PlanProducerTest extends Specification {
                 new Currency("USDT"),
                 new Currency("ETH"),
                 new BigDecimal("20.1")
-        ) >> Optional.of(usdtToEthOrders)
+        ) >> usdtToEthOrders
         1 * tradingPathFinder.findPathOfOrders(
                 new Currency("USDT"),
                 new Currency("ETH2"),
                 new BigDecimal("20.1")
-        ) >> Optional.of(usdtToEth2Orders)
+        ) >> usdtToEth2Orders
         1 * tradingPathFinder.getOrderTargetQuantity(usdtToEthOrders[2]) >> new BigDecimal("19.1")
         1 * tradingPathFinder.getOrderTargetQuantity(usdtToEth2Orders[1]) >> new BigDecimal("19.1")
         (1 .. _) * tradingConfig.getMeasuringSec() >> 600
@@ -277,22 +281,22 @@ class PlanProducerTest extends Specification {
                 new Currency("USDT"),
                 new Currency("ETH"),
                 new BigDecimal("20.1")
-        ) >> Optional.of(usdtToEthOrders)
+        ) >> usdtToEthOrders
         1 * tradingPathFinder.findPathOfOrders(
                 new Currency("USDT"),
                 new Currency("USDT2"),
                 new BigDecimal("20.1")
-        ) >> Optional.empty()
+        ) >> {throw new ValueLimitException("")}
         1 * tradingPathFinder.findPathOfOrders(
                 new Currency("USDT2"),
                 new Currency("USDT"),
                 new BigDecimal("21.1")
-        ) >> Optional.of([])
+        ) >> {throw new NoSuchPathException("")}
         1 * tradingPathFinder.findPathOfOrders(
                 new Currency("USDT2"),
                 new Currency("ETH"),
                 new BigDecimal("21.1")
-        ) >> Optional.of(usdt2ToEthOrders)
+        ) >> usdt2ToEthOrders
         1 * tradingPathFinder.getOrderTargetQuantity(usdtToEthOrders[0]) >> new BigDecimal("19.1")
         1 * tradingPathFinder.getOrderTargetQuantity(usdt2ToEthOrders[1]) >> new BigDecimal("19.1")
         (1 .. _) * tradingConfig.getMeasuringSec() >> 600
@@ -339,7 +343,7 @@ class PlanProducerTest extends Specification {
                 new Currency("USDT"),
                 new Currency("ETH"),
                 new BigDecimal("20.1")
-        ) >> {throw new ValueException("")}
+        ) >> {throw new ValueLimitException("")}
         plan.getOrders().isEmpty()
     }
 }

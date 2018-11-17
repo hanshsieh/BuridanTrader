@@ -1,6 +1,7 @@
 package com.buridantrader;
 
-import com.buridantrader.exceptions.ValueException;
+import com.buridantrader.exceptions.NoSuchPathException;
+import com.buridantrader.exceptions.ValueLimitException;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -47,17 +48,17 @@ public class TradingPathFinder {
     }
 
     @Nonnull
-    public Optional<List<OrderSpec>> findPathOfOrderSpecs(
+    public List<OrderSpec> findPathOfOrderSpecs(
             @Nonnull final Currency sourceCurrency,
             @Nonnull final Currency targetCurrency
-    ) throws IOException {
+    ) throws IOException, NoSuchPathException {
         checkFreshness();
         Optional<PathStep> optPathEntry = tradingPaths.getNextStep(sourceCurrency, targetCurrency);
         List<OrderSpec> path = new ArrayList<>();
         Currency nowCurrency = sourceCurrency;
         do {
             if (!optPathEntry.isPresent()) {
-                return Optional.empty();
+                throw new NoSuchPathException("No trading path from " +sourceCurrency + " to " + targetCurrency);
             }
             PathStep pathStep = optPathEntry.get();
             path.add(createOrderSpec(nowCurrency, pathStep.getSymbolToNext()));
@@ -65,19 +66,15 @@ public class TradingPathFinder {
             optPathEntry = tradingPaths.getNextStep(nextCurrency, targetCurrency);
             nowCurrency = nextCurrency;
         } while (!nowCurrency.equals(targetCurrency));
-        return Optional.of(path);
+        return path;
     }
 
     @Nonnull
-    public Optional<List<Order>> findPathOfOrders(
+    public List<Order> findPathOfOrders(
             @Nonnull final Currency sourceCurrency,
             @Nonnull final Currency targetCurrency,
-            @Nonnull final BigDecimal quantity) throws IOException, ValueException {
-        Optional<List<OrderSpec>> optOrderSpecs = findPathOfOrderSpecs(sourceCurrency, targetCurrency);
-        if (!optOrderSpecs.isPresent()) {
-            return Optional.empty();
-        }
-        List<OrderSpec> orderSpecs = optOrderSpecs.get();
+            @Nonnull final BigDecimal quantity) throws IOException, ValueLimitException, NoSuchPathException {
+        List<OrderSpec> orderSpecs = findPathOfOrderSpecs(sourceCurrency, targetCurrency);
         List<Order> orders = new ArrayList<>(orderSpecs.size());
         BigDecimal nowQuantity = quantity;
         for (OrderSpec orderSpec : orderSpecs) {
@@ -93,7 +90,7 @@ public class TradingPathFinder {
 
             nowQuantity = calTargetQuantity(order, symbolInfo, price);
         }
-        return Optional.of(orders);
+        return orders;
     }
 
     @Nonnull

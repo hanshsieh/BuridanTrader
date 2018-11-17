@@ -1,6 +1,7 @@
 package com.buridantrader
 
-import com.buridantrader.exceptions.ValueException
+import com.buridantrader.exceptions.NoSuchPathException
+import com.buridantrader.exceptions.ValueLimitException
 import spock.lang.Specification
 
 import java.math.RoundingMode
@@ -52,7 +53,7 @@ class TradingPathFinderTest extends Specification {
         1 * system.currentTimeMillis() >> 1536931586123
         1 * tradingPaths.getNextStep(sourceCurrency, targetCurrency) >> Optional.of(pathStep1)
         1 * tradingPaths.getNextStep(middleCurrency, targetCurrency) >> Optional.of(pathStep2)
-        path.get() == [
+        path == [
             new OrderSpec(symbol2, OrderSide.BUY),
             new OrderSpec(symbol1, OrderSide.SELL)
         ]
@@ -61,22 +62,22 @@ class TradingPathFinderTest extends Specification {
         path = tradingPathFinder.findPathOfOrderSpecs(sourceCurrency, targetCurrency)
 
         then:
+        thrown(NoSuchPathException)
         symbolProvider.isUpdatedSince(Instant.ofEpochMilli(1536931586123)) >> true
         1 * symbolProvider.getAllSymbolInfos() >> []
         1 * shortestPathsResolver.resolveAllShortestPaths([]) >> tradingPaths
         1 * system.currentTimeMillis() >> 1536931586124
         1 * tradingPaths.getNextStep(sourceCurrency, targetCurrency) >> Optional.empty()
-        !path.isPresent()
 
         when:
         tradingPathFinder.findPathOfOrderSpecs(sourceCurrency, targetCurrency)
 
         then:
+        thrown(NoSuchPathException)
         symbolProvider.isUpdatedSince(Instant.ofEpochMilli(1536931586124)) >> false
         0 * shortestPathsResolver.resolveAllShortestPaths([] as Collection)
         0 * symbolProvider.getAllSymbolInfos()
         1 * tradingPaths.getNextStep(sourceCurrency, targetCurrency) >> Optional.empty()
-        !path.isPresent()
     }
 
     def "find path of orders"() {
@@ -142,7 +143,7 @@ class TradingPathFinderTest extends Specification {
         1 * priceFormalizer2.formalize(new BigDecimal("3.1415927"), RoundingMode.DOWN) >> new BigDecimal("3.1415926")
         1 * priceFormalizer3.formalize(new BigDecimal("0.0122"), RoundingMode.UP) >> new BigDecimal("0.0123")
 
-        path.get() == [
+        path == [
                 // Source quantity: 100.0
                 // Order quantity: 100.0 / 2.16 = 46.2962962... -> use scale 4 -> 46.2962 -> formalize -> 46.2961
                 new Order(new OrderSpec(symbol1, OrderSide.BUY), new BigDecimal("46.2961")),
@@ -167,15 +168,15 @@ class TradingPathFinderTest extends Specification {
         def tradingPaths = Mock(TradingPaths)
 
         when:
-        def path = tradingPathFinder.findPathOfOrders(sourceCurrency, targetCurrency, new BigDecimal("100.0"))
+        tradingPathFinder.findPathOfOrders(sourceCurrency, targetCurrency, new BigDecimal("100.0"))
 
         then:
+        thrown(NoSuchPathException)
         (1 .. _) * symbolInfo1.getSymbol() >> symbol1
         1 * symbolProvider.getAllSymbolInfos() >> symbolInfos
         1 * shortestPathsResolver.resolveAllShortestPaths([symbol1]) >> tradingPaths
         1 * system.currentTimeMillis() >> 1536931586123
         1 * tradingPaths.getNextStep(sourceCurrency, targetCurrency) >> Optional.empty()
-        !path.isPresent()
     }
 
     def "when finding path of orders, fail to formalize the order quantity"() {
@@ -195,7 +196,7 @@ class TradingPathFinderTest extends Specification {
         tradingPathFinder.findPathOfOrders(sourceCurrency, targetCurrency, new BigDecimal("100.0"))
 
         then:
-        thrown(ValueException)
+        thrown(ValueLimitException)
         (1 .. _) * symbolInfo1.getSymbol() >> symbol1
         (1 .. _) * symbolInfo1.getQuantityFormalizer() >> quantityFormalizer1
         1 * symbolProvider.getAllSymbolInfos() >> symbolInfos
@@ -205,7 +206,7 @@ class TradingPathFinderTest extends Specification {
         1 * symbolProvider.getSymbolInfo(symbol1) >> Optional.of(symbolInfos[0])
         1 * symbolPriceProvider.getPrice(symbol1) >> Optional.of(new BigDecimal("2.16"))
         1 * quantityFormalizer1.formalize(new BigDecimal("100.0"), RoundingMode.DOWN) >> {
-            throw new ValueException("")
+            throw new ValueLimitException("")
         }
     }
 
