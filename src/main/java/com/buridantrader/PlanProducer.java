@@ -71,7 +71,7 @@ public class PlanProducer {
                         freeQuantity);
             } catch (ValueException ex) {
                 LOGGER.debug("Unable to find path of orders from {} to {} because: {}",
-                        sourceCurrency, targetCurrency, ex.getReason());
+                        sourceCurrency, targetCurrency);
                 continue;
             }
             if (!optOrders.isPresent() || optOrders.get().isEmpty()) {
@@ -112,7 +112,8 @@ public class PlanProducer {
         BigDecimal growthAfterConvert = targetGrowthRate.multiply(measuringSec)
                 .multiply(targetQuantity);
 
-        // If the "sourceGrowthRate" is negative, don't consider the transaction fee.
+        // If the "sourceGrowthRate" is negative, we want to move the quantities to
+        // another currency anyway, so don't consider the transaction fee.
         if (sourceGrowthRate.signum() >= 0) {
             BigDecimal totalFee = config.getTradingFeeRate()
                     .multiply(new BigDecimal(orders.size()))
