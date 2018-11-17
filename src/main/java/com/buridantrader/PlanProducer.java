@@ -1,7 +1,8 @@
 package com.buridantrader;
 
 import com.buridantrader.config.TradingConfig;
-import com.buridantrader.exceptions.ValueException;
+import com.buridantrader.exceptions.NoSuchPathException;
+import com.buridantrader.exceptions.ValueLimitException;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -62,28 +63,25 @@ public class PlanProducer {
             Asset targetAsset = target.getAsset();
 
             Currency targetCurrency = targetAsset.getCurrency();
-            Optional<List<Order>> optOrders;
+            List<Order> orders;
             try {
                 BigDecimal freeQuantity = source.getFreeQuantity();
-                optOrders = tradingPathFinder.findPathOfOrders(
+                orders = tradingPathFinder.findPathOfOrders(
                         sourceCurrency,
                         targetCurrency,
                         freeQuantity);
-            } catch (ValueException ex) {
-                LOGGER.debug("Unable to find path of orders from {} to {} because: {}",
-                        sourceCurrency, targetCurrency);
+            } catch (IllegalArgumentException ex) {
+                LOGGER.debug("Unable to find path of orders from {} to {}",
+                        sourceCurrency, targetCurrency, ex);
                 continue;
             }
-            if (!optOrders.isPresent() || optOrders.get().isEmpty()) {
-                continue;
-            }
-            BigDecimal growthDiff = calGrowthRateDiff(source, target, optOrders.get());
+            BigDecimal growthDiff = calGrowthRateDiff(source, target, orders);
             LOGGER.debug("Growth rate diff {} relative to {} is {}",
                     target.getAsset().getCurrency(),
                     source.getAsset().getCurrency(),
                     growthDiff);
             if (growthDiff.compareTo(maxGrowthRateDiff) > 0) {
-                mostProfitableOrders = optOrders.get();
+                mostProfitableOrders = orders;
                 maxGrowthRateDiff = growthDiff;
             }
         }

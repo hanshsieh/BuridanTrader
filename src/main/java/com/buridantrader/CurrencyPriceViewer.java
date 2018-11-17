@@ -1,5 +1,8 @@
 package com.buridantrader;
 
+import com.buridantrader.exceptions.NoSuchPathException;
+import com.buridantrader.exceptions.ValueLimitException;
+
 import javax.annotation.Nonnull;
 import java.io.IOException;
 import java.math.BigDecimal;
@@ -30,19 +33,15 @@ public class CurrencyPriceViewer {
             @Nonnull Currency baseCurrency,
             @Nonnull Currency quoteCurrency,
             @Nonnull Instant startTime,
-            @Nonnull Instant endTime) throws IOException, IllegalArgumentException {
+            @Nonnull Instant endTime) throws IOException, ValueLimitException, NoSuchPathException {
 
-        Optional<List<OrderSpec>> optOrderSpecs =
+        List<OrderSpec> orderSpecs =
                 tradingPathFinder.findPathOfOrderSpecs(baseCurrency, quoteCurrency);
-
-        if (!optOrderSpecs.isPresent()) {
-            throw new IllegalArgumentException("No trading path from " + baseCurrency + " to " + quoteCurrency);
-        }
 
         List<Candlestick> finalCandlesticks = null;
 
         List<List<Candlestick>> candlesticksForOrders =
-                collectCandlesticks(optOrderSpecs.get(), startTime, endTime);
+                collectCandlesticks(orderSpecs, startTime, endTime);
 
         for (List<Candlestick> candlesticks: candlesticksForOrders) {
             if (finalCandlesticks == null) {
@@ -107,7 +106,7 @@ public class CurrencyPriceViewer {
     @Nonnull
     private List<Candlestick> convertCandlesticksForOrder(
             @Nonnull List<Candlestick> candlesticks,
-            @Nonnull OrderSpec orderSpec) throws IllegalArgumentException {
+            @Nonnull OrderSpec orderSpec) throws ValueLimitException {
         if (OrderSide.SELL.equals(orderSpec.getOrderSide())) {
             return candlesticks;
         }
@@ -122,7 +121,7 @@ public class CurrencyPriceViewer {
                     })
                     .collect(Collectors.toList());
         } catch (ArithmeticException ex) {
-            throw new IllegalArgumentException("Price cannot be 0", ex);
+            throw new ValueLimitException("Price cannot be 0", ex);
         }
     }
 

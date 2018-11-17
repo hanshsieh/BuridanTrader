@@ -1,6 +1,6 @@
 package com.buridantrader;
 
-import com.buridantrader.exceptions.ValueException;
+import com.buridantrader.exceptions.ValueLimitException;
 
 import javax.annotation.Nonnull;
 import javax.annotation.concurrent.Immutable;
@@ -39,21 +39,21 @@ public class DecimalFormalizer {
      * @param roundingMode Rouding mode.
      * @return Formalized value.
      *
-     * @throws ValueException The value is out of min or max value.
+     * @throws ValueLimitException The value is out of min or max value.
      */
     @Nonnull
     public BigDecimal formalize(
             @Nonnull BigDecimal oldValue,
-            @Nonnull RoundingMode roundingMode) throws ValueException {
+            @Nonnull RoundingMode roundingMode) throws ValueLimitException {
         BigDecimal numSteps = oldValue.subtract(minValue).
                 divide(stepSize, 0, roundingMode);
         BigDecimal newValue = numSteps.multiply(stepSize).add(minValue);
         if (newValue.compareTo(minValue) < 0) {
-            throw new ValueException(
+            throw new ValueLimitException(
                     "Value " + newValue + " is smaller than the minimum value " + minValue);
         }
         if (newValue.compareTo(maxValue) > 0) {
-            throw new ValueException(
+            throw new ValueLimitException(
                     "Value " + newValue + " is smaller than the minimum value " + minValue);
         }
         return newValue.stripTrailingZeros();

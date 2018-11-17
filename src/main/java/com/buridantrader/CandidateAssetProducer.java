@@ -1,7 +1,8 @@
 package com.buridantrader;
 
 import com.buridantrader.config.TradingConfig;
-import com.buridantrader.exceptions.ValueException;
+import com.buridantrader.exceptions.NoSuchPathException;
+import com.buridantrader.exceptions.ValueLimitException;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -37,15 +38,19 @@ public class CandidateAssetProducer {
         for (Asset asset : assetViewer.getAccountAssets()) {
 
             BigDecimal freeQuantity = calFreeQuantity(asset);
-            Optional<BigDecimal> freeValue = calValue(asset, freeQuantity);
-            if (!freeValue.isPresent()) {
+            BigDecimal freeValue;
+            try {
+                freeValue = calValue(asset, freeQuantity);
+            } catch (NoSuchPathException ex) {
+                LOGGER.debug("The balance of asset {} is ignored because: {}",
+                        asset.getCurrency(), ex.getMessage());
                 continue;
             }
 
             PricePrediction prediction;
             try {
                 prediction = pricePredictor.getPrediction(asset.getCurrency(), config.getQuoteCurrency());
-            } catch (IllegalArgumentException ex) {
+            } catch (NoSuchPathException ex) {
                 LOGGER.info("Unable to get prediction for {} relative to {}. Skipping it",
                         asset.getCurrency(),
                         config.getQuoteCurrency());
@@ -60,7 +65,7 @@ public class CandidateAssetProducer {
                     freeQuantity,
                     config.getQuoteCurrency(),
                     freeValue);
-            CandidateAsset candidate = new CandidateAsset(asset, prediction, freeQuantity, freeValue.get());
+            CandidateAsset candidate = new CandidateAsset(asset, prediction, freeQuantity, freeValue);
             candidate.setEligibleForSource(isEligibleForSource(candidate));
             candidates.add(candidate);
         }
@@ -84,14 +89,13 @@ public class CandidateAssetProducer {
     }
 
     @Nonnull
-    private Optional<BigDecimal> calValue(@Nonnull Asset asset, @Nonnull BigDecimal quantity) throws IOException {
+    private BigDecimal calValue(@Nonnull Asset asset, @Nonnull BigDecimal quantity)
+            throws IOException, NoSuchPathException {
         try {
             return priceConverter.getRelativePrice(
                     asset.getCurrency(), config.getQuoteCurrency(), quantity);
-        } catch (ValueException ex) {
-            LOGGER.debug("The balance of asset {} is ignored because: {}",
-                    asset.getCurrency(), ex.getMessage());
-            return Optional.of(BigDecimal.ZERO);
+        } catch (ValueLimitException ex) {
+            return BigDecimal.ZERO;
         }
     }
 }

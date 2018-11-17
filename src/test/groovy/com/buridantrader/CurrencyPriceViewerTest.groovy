@@ -1,5 +1,7 @@
 package com.buridantrader
 
+import com.buridantrader.exceptions.NoSuchPathException
+import com.buridantrader.exceptions.ValueLimitException
 import spock.lang.Specification
 
 import java.time.Instant
@@ -31,7 +33,7 @@ class CurrencyPriceViewerTest extends Specification {
         def result = currencyPriceViewer.getPriceHistoryPerMinute(baseCurrency, quoteCurrency, startTime, endTime)
 
         then:
-        1 * tradingPathFinder.findPathOfOrderSpecs(baseCurrency, quoteCurrency) >> Optional.of(orderSpecs)
+        1 * tradingPathFinder.findPathOfOrderSpecs(baseCurrency, quoteCurrency) >> orderSpecs
         1 * symbolPriceViewer.getPriceHistoryPerMinute(symbol1, startTime, endTime) >> [
                 new Candlestick(
                         Instant.ofEpochMilli(100),
@@ -80,7 +82,7 @@ class CurrencyPriceViewerTest extends Specification {
 
         then:
         thrown(IOException)
-        1 * tradingPathFinder.findPathOfOrderSpecs(baseCurrency, quoteCurrency) >> Optional.of([])
+        1 * tradingPathFinder.findPathOfOrderSpecs(baseCurrency, quoteCurrency) >> []
     }
 
     def "when getting price history per minute, unable to get order spec"() {
@@ -94,8 +96,8 @@ class CurrencyPriceViewerTest extends Specification {
         currencyPriceViewer.getPriceHistoryPerMinute(baseCurrency, quoteCurrency, startTime, endTime)
 
         then:
-        thrown(IllegalArgumentException)
-        1 * tradingPathFinder.findPathOfOrderSpecs(baseCurrency, quoteCurrency) >> Optional.empty()
+        thrown(NoSuchPathException)
+        1 * tradingPathFinder.findPathOfOrderSpecs(baseCurrency, quoteCurrency) >> {throw new NoSuchPathException("")}
     }
 
     def "when getting price history per minute, price is 0"() {
@@ -113,8 +115,8 @@ class CurrencyPriceViewerTest extends Specification {
         currencyPriceViewer.getPriceHistoryPerMinute(baseCurrency, quoteCurrency, startTime, endTime)
 
         then:
-        thrown(IllegalArgumentException)
-        1 * tradingPathFinder.findPathOfOrderSpecs(baseCurrency, quoteCurrency) >> Optional.of(orderSpecs)
+        thrown(ValueLimitException)
+        1 * tradingPathFinder.findPathOfOrderSpecs(baseCurrency, quoteCurrency) >> orderSpecs
         1 * symbolPriceViewer.getPriceHistoryPerMinute(symbol1, startTime, endTime) >> [
                 new Candlestick(
                         Instant.ofEpochMilli(100),
