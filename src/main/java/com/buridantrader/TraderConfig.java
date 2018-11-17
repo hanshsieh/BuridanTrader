@@ -1,5 +1,7 @@
 package com.buridantrader;
 
+import com.buridantrader.config.TradingConfig;
+import com.buridantrader.config.TradingConfigImpl;
 import com.typesafe.config.Config;
 import com.typesafe.config.ConfigFactory;
 
@@ -9,10 +11,12 @@ import java.io.InputStream;
 import java.util.Properties;
 
 public class TraderConfig {
-    private Config config;
+    private final Config config;
     private Properties secret = null;
+    private final TradingConfig tradingConfig;
     public TraderConfig(@Nonnull String configPath) {
         this.config = ConfigFactory.load(configPath);
+        this.tradingConfig = new TradingConfigImpl(config.getConfig("trading"));
     }
 
     @Nonnull
@@ -35,12 +39,17 @@ public class TraderConfig {
         return result;
     }
 
+    @Nonnull
+    public TradingConfig getTradingConfig() {
+        return tradingConfig;
+    }
+
     private void loadSecret() throws IOException {
         if (secret != null) {
             return;
         }
         Properties newSecret = new Properties();
-        String secretFilePath = config.getString("binance.secret_file");
+        String secretFilePath = config.getString("binance.secretFile");
         try (InputStream secretInput = getClass().getResourceAsStream(secretFilePath)) {
             if (secretInput == null) {
                 throw new IOException("Unable to find resource with name \"" + secretFilePath + "\"");

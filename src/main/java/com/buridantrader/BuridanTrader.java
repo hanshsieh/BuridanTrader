@@ -2,6 +2,8 @@ package com.buridantrader;
 
 import com.binance.api.client.BinanceApiRestClient;
 import com.binance.api.client.impl.BinanceApiRestClientImpl;
+import com.buridantrader.config.TradingConfig;
+import com.buridantrader.config.TradingConfigImpl;
 
 import javax.annotation.Nonnull;
 import java.io.IOException;
@@ -27,7 +29,9 @@ public class BuridanTrader {
         CurrencyPriceViewer currencyPriceViewer = new CurrencyPriceViewer(symbolPriceViewer, tradingPathFinder);
         PricePredictor pricePredictor = new PricePredictor(currencyPriceViewer);
         PriceConverter priceConverter = new PriceConverter(tradingPathFinder);
-        PlanProducer planProducer = new PlanProducer(pricePredictor, assetViewer, tradingPathFinder, priceConverter);
+        CandidateAssetProducer candidateAssetProducer = new CandidateAssetProducer(
+                config.getTradingConfig(), assetViewer, pricePredictor, priceConverter);
+        PlanProducer planProducer = new PlanProducer(config.getTradingConfig(), tradingPathFinder, candidateAssetProducer);
         TradingPlanner tradingPlanner = new TradingPlanner(planProducer);
         this.planConsumer = new PlanConsumer(tradingPlanner, planWorkerFactory);
     }

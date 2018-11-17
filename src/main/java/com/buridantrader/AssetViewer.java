@@ -16,6 +16,13 @@ public class AssetViewer {
         this.client = client;
     }
 
+    /**
+     * Get the assets of the accounts.
+     * It include the assets that the account has no money inside.
+     *
+     * @return List of assets.
+     * @throws IOException Fail to get the assets.
+     */
     @Nonnull
     public List<Asset> getAccountAssets() throws IOException {
         try {
