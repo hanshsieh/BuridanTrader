@@ -89,8 +89,8 @@ public class CandidateAssetProducer {
             return priceConverter.getRelativePrice(
                     asset.getCurrency(), config.getQuoteCurrency(), quantity);
         } catch (ValueException ex) {
-            LOGGER.debug("The balance of asset {} is ignored because the balance is {}",
-                    asset.getCurrency(), ex.getReason());
+            LOGGER.debug("The balance of asset {} is ignored because: {}",
+                    asset.getCurrency(), ex.getMessage());
             return Optional.of(BigDecimal.ZERO);
         }
     }

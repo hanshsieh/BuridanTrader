@@ -49,11 +49,11 @@ public class DecimalFormalizer {
                 divide(stepSize, 0, roundingMode);
         BigDecimal newValue = numSteps.multiply(stepSize).add(minValue);
         if (newValue.compareTo(minValue) < 0) {
-            throw new ValueException(ValueException.Reason.TOO_SMALL,
+            throw new ValueException(
                     "Value " + newValue + " is smaller than the minimum value " + minValue);
         }
         if (newValue.compareTo(maxValue) > 0) {
-            throw new ValueException(ValueException.Reason.TOO_LARGE,
+            throw new ValueException(
                     "Value " + newValue + " is smaller than the minimum value " + minValue);
         }
         return newValue.stripTrailingZeros();
