@@ -12,6 +12,7 @@
 
     <properties>
         <project.build.sourceEncoding>UTF-8</project.build.sourceEncoding>
+        <retrofit2.version>2.5.0</retrofit2.version>
     </properties>
 
     <dependencies>
@@ -56,14 +57,14 @@
         <dependency>
             <groupId>com.squareup.retrofit2</groupId>
             <artifactId>retrofit</artifactId>
-            <version>2.3.0</version>
+            <version>${retrofit2.version}</version>
         </dependency>
 
         <!-- Required by com.binance.api:binance-api-client-->
         <dependency>
             <groupId>com.squareup.retrofit2</groupId>
             <artifactId>converter-jackson</artifactId>
-            <version>2.3.0</version>
+            <version>${retrofit2.version}</version>
         </dependency>
 
         <dependency>
