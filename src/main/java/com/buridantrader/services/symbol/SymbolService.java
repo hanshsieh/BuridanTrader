@@ -1,5 +1,8 @@
-package com.buridantrader;
+package com.buridantrader.services.symbol;
 
+import com.buridantrader.Symbol;
+import com.buridantrader.SymbolInfo;
+import com.buridantrader.services.system.SystemService;
 import com.google.common.collect.ImmutableList;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;

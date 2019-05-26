@@ -1,7 +1,9 @@
-package com.buridantrader;
+package com.buridantrader.services.symbol;
 
 import com.binance.api.client.BinanceApiRestClient;
 import com.binance.api.client.domain.market.TickerPrice;
+import com.buridantrader.Symbol;
+import com.buridantrader.SymbolInfo;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 

@@ -1,5 +1,9 @@
-package com.buridantrader
+package com.buridantrader.services.symbol
 
+import com.buridantrader.Currency
+import com.buridantrader.Symbol
+import com.buridantrader.SymbolInfo
+import com.buridantrader.services.system.SystemService
 import spock.lang.Specification
 
 import java.time.Instant

@@ -3,6 +3,7 @@ package com.buridantrader
 import com.binance.api.client.BinanceApiRestClient
 import com.binance.api.client.domain.OrderType
 import com.binance.api.client.domain.account.NewOrder
+import com.buridantrader.services.system.SystemService
 import spock.lang.Specification
 
 /**

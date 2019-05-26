@@ -2,6 +2,9 @@ package com.buridantrader
 
 import com.buridantrader.exceptions.NoSuchPathException
 import com.buridantrader.exceptions.ValueLimitException
+import com.buridantrader.services.symbol.SymbolService
+import com.buridantrader.services.symbol.SymbolPriceService
+import com.buridantrader.services.system.SystemService
 import spock.lang.Specification
 
 import java.math.RoundingMode
