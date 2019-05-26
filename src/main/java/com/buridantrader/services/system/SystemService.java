@@ -1,6 +1,9 @@
-package com.buridantrader;
+package com.buridantrader.services.system;
+
+import org.apache.ibatis.io.Resources;
 
 import javax.annotation.Nonnull;
+import java.io.InputStream;
 
 public class SystemService {
 
@@ -15,5 +18,10 @@ public class SystemService {
 
     public long currentTimeMillis() {
         return java.lang.System.currentTimeMillis();
+    }
+
+    @Nonnull
+    public InputStream getResourceAsStream(@Nonnull String resourceName) {
+        return SystemService.class.getClassLoader().getResourceAsStream(resourceName);
     }
 }

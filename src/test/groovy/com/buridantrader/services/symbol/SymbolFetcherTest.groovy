@@ -1,10 +1,13 @@
-package com.buridantrader
+package com.buridantrader.services.symbol
 
 import com.binance.api.client.BinanceApiRestClient
 import com.binance.api.client.domain.general.ExchangeInfo
 import com.binance.api.client.domain.general.FilterType
 import com.binance.api.client.domain.general.SymbolFilter
 import com.binance.api.client.domain.general.SymbolStatus
+import com.buridantrader.Symbol
+import com.buridantrader.Currency
+import com.buridantrader.SymbolInfo
 import spock.lang.Specification
 
 /**

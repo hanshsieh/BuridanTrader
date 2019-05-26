@@ -2,6 +2,9 @@ package com.buridantrader;
 
 import com.buridantrader.exceptions.NoSuchPathException;
 import com.buridantrader.exceptions.ValueLimitException;
+import com.buridantrader.services.binance.CandlestickIterator;
+import com.buridantrader.services.symbol.SymbolPriceViewer;
+import com.google.common.collect.Lists;
 
 import javax.annotation.Nonnull;
 import java.io.IOException;
@@ -11,8 +14,8 @@ import java.time.Instant;
 import java.util.ArrayList;
 import java.util.Iterator;
 import java.util.List;
-import java.util.Optional;
 import java.util.stream.Collectors;
+import java.util.stream.StreamSupport;
 
 public class CurrencyPriceViewer {
 
@@ -67,10 +70,10 @@ public class CurrencyPriceViewer {
         int minSize = Integer.MAX_VALUE;
         for (OrderSpec orderSpec : orderSpecs) {
             Symbol symbol = orderSpec.getSymbol();
-            List<Candlestick> candlesticks = symbolPriceViewer.getPriceHistoryPerMinute(symbol, startTime, endTime);
-            List<Candlestick> convertedCandlesticks = convertCandlesticksForOrder(candlesticks, orderSpec);
+            Iterator<Candlestick> candlesticksItr = symbolPriceViewer.getPriceHistoryPerMinute(symbol, startTime, endTime);
+            List<Candlestick> convertedCandlesticks = convertCandlesticksForOrder(candlesticksItr, orderSpec);
             candlesticksForOrders.add(convertedCandlesticks);
-            minSize = Math.min(candlesticks.size(), minSize);
+            minSize = Math.min(convertedCandlesticks.size(), minSize);
         }
 
         // For unknown reason, Binance API sometimes return different number of candlesticks with the same
@@ -105,8 +108,9 @@ public class CurrencyPriceViewer {
 
     @Nonnull
     private List<Candlestick> convertCandlesticksForOrder(
-            @Nonnull List<Candlestick> candlesticks,
+            @Nonnull Iterator<Candlestick> candlestickItr,
             @Nonnull OrderSpec orderSpec) throws ValueLimitException {
+        List<Candlestick> candlesticks = Lists.newArrayList(candlestickItr);
         if (OrderSide.SELL.equals(orderSpec.getOrderSide())) {
             return candlesticks;
         }

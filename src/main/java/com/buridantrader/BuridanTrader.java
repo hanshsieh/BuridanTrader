@@ -2,8 +2,10 @@ package com.buridantrader;
 
 import com.binance.api.client.BinanceApiRestClient;
 import com.binance.api.client.impl.BinanceApiRestClientImpl;
-import com.buridantrader.config.TradingConfig;
-import com.buridantrader.config.TradingConfigImpl;
+import com.buridantrader.services.symbol.SymbolFetcher;
+import com.buridantrader.services.symbol.SymbolPriceViewer;
+import com.buridantrader.services.symbol.SymbolService;
+import com.buridantrader.services.symbol.SymbolPriceService;
 
 import javax.annotation.Nonnull;
 import java.io.IOException;

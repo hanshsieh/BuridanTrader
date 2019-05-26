@@ -28,8 +28,12 @@
         </encoder>
     </appender>
 
-    <root level="DEBUG">
+    <logger name="com.buridantrader" level="DEBUG" />
+    <logger name="com.buridantrader.services.binance.mappers" level="INFO" />
+
+    <root level="INFO">
         <appender-ref ref="STDOUT" />
+        <appender-ref ref="FILE" />
     </root>
 
 </configuration>

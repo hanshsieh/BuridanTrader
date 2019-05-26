@@ -1,0 +1,83 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE mapper PUBLIC "-//mybatis.org//DTd Mapper 3.0//EN" "http://mybatis.org/dtd/mybatis-3-mapper.dtd" >
+
+<mapper namespace="com.buridantrader.services.binance.mappers.CandlestickMapper">
+    <resultMap id="CandlestickResultMap" type="CandlestickModel">
+        <result property="symbol" column="symbol"/>
+        <result property="openTime" column="open_time"/>
+        <result property="closeTime" column="close_time"/>
+        <result property="open" column="open"/>
+        <result property="close" column="close"/>
+        <result property="high" column="high"/>
+        <result property="low" column="low"/>
+        <result property="volume" column="volume"/>
+        <result property="quoteAssetVolume" column="quote_asset_volume"/>
+        <result property="numberOfTrades" column="number_of_trades"/>
+        <result property="takerBuyBaseAssetVolume" column="taker_buy_base_asset_volume"/>
+        <result property="takerBuyQuoteAssetVolume" column="taker_buy_quote_asset_volume"/>
+    </resultMap>
+    <!--
+    CREATE TABLE candlestick (
+        symbol VARCHAR,
+        open_time BIGINT,
+        close_time BIGINT,
+        open VARCHAR,
+        close VARCHAR,
+        high VARCHAR,
+        low VARCHAR,
+        volume VARCHAR,
+        quote_asset_volume VARCHAR,
+        number_of_trades BIGINT,
+        taker_buy_base_asset_volume VARCHAR,
+        taker_buy_quote_asset_volume VARCHAR,
+        UNIQUE(symbol, open_time)
+    );
+    -->
+    <insert id="insertOrReplace" useGeneratedKeys="false" timeout="5">
+        INSERT OR REPLACE INTO `candlestick` (
+            `symbol`,
+            `open_time`,
+            `close_time`,
+            `open`,
+            `close`,
+            `high`,
+            `low`,
+            `volume`,
+            `quote_asset_volume`,
+            `number_of_trades`,
+            `taker_buy_base_asset_volume`,
+            `taker_buy_quote_asset_volume`)
+        VALUES (
+            #{candlestick.symbol, jdbcType=VARCHAR},
+            #{candlestick.openTime, jdbcType=BIGINT},
+            #{candlestick.closeTime, jdbcType=BIGINT},
+            #{candlestick.open, jdbcType=VARCHAR},
+            #{candlestick.close, jdbcType=VARCHAR},
+            #{candlestick.high, jdbcType=VARCHAR},
+            #{candlestick.low, jdbcType=VARCHAR},
+            #{candlestick.volume, jdbcType=VARCHAR},
+            #{candlestick.quoteAssetVolume, jdbcType=VARCHAR},
+            #{candlestick.numberOfTrades, jdbcType=BIGINT},
+            #{candlestick.takerBuyBaseAssetVolume, jdbcType=VARCHAR},
+            #{candlestick.takerBuyQuoteAssetVolume, jdbcType=VARCHAR}
+        )
+    </insert>
+
+    <select id="query" timeout="5" resultMap="CandlestickResultMap">
+        SELECT
+        `symbol`,
+        `open_time`,
+        `close_time`,
+        `open`,
+        `close`,
+        `high`,
+        `low`,
+        `volume`,
+        `quote_asset_volume`,
+        `number_of_trades`,
+        `taker_buy_base_asset_volume`,
+        `taker_buy_quote_asset_volume` FROM `candlestick` WHERE
+        `open_time` &gt;= #{candlestick.start_time, jdbcType=BIGINT} AND
+        `open_time` &lt;= #{candlestick.end_time, jdbcType=BIGINT}
+    </select>
+</mapper>

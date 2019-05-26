@@ -2,6 +2,7 @@ package com.buridantrader
 
 import com.buridantrader.exceptions.NoSuchPathException
 import com.buridantrader.exceptions.ValueLimitException
+import com.buridantrader.services.symbol.SymbolPriceViewer
 import spock.lang.Specification
 
 import java.time.Instant
@@ -47,7 +48,7 @@ class CurrencyPriceViewerTest extends Specification {
                         Instant.ofEpochMilli(300),
                         Instant.ofEpochMilli(399),
                         new BigDecimal("300.01"))
-        ]
+        ].iterator()
         1 * symbolPriceViewer.getPriceHistoryPerMinute(symbol2, startTime, endTime) >> [
                 new Candlestick(
                         Instant.ofEpochMilli(101),
@@ -57,7 +58,7 @@ class CurrencyPriceViewerTest extends Specification {
                         Instant.ofEpochMilli(201),
                         Instant.ofEpochMilli(300),
                         new BigDecimal("500.01"))
-        ]
+        ].iterator()
         result == [
                 new Candlestick(
                         Instant.ofEpochMilli(100),
@@ -122,7 +123,7 @@ class CurrencyPriceViewerTest extends Specification {
                         Instant.ofEpochMilli(100),
                         Instant.ofEpochMilli(199),
                         new BigDecimal("0"))
-        ]
+        ].iterator()
     }
 }
 
