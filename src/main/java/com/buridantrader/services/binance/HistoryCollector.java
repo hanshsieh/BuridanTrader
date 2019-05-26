@@ -109,9 +109,10 @@ public class HistoryCollector {
     }
 
     public static void main(String[] args) throws Exception {
+        // The operations we need here doesn't need API key and secret.
         BinanceApiRestClient client = new BinanceApiRestClientImpl(
-                "XXX",
-                "XXX"
+                null,
+                null
         );
         HistoryCollector collector = new HistoryCollector(
                 client,
