@@ -32,4 +32,4 @@ src/main/java/Test.java
 src/main/resources/secrets/*
 *.sqlite
 *.sqlite-journal
-
+simulation/

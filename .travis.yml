@@ -1,4 +1,6 @@
 language: java
+jdk:
+  - openjdk8
 before_install:
   - git clone https://github.com/binance-exchange/binance-java-api.git
   - mvn -f binance-java-api/pom.xml install
