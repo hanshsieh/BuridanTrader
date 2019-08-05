@@ -12,6 +12,8 @@ import org.slf4j.LoggerFactory;
 import javax.annotation.Nonnull;
 import java.time.Instant;
 import java.util.List;
+import java.util.Optional;
+import java.util.OptionalLong;
 
 public class CandlestickCollector implements Runnable {
 
@@ -20,22 +22,19 @@ public class CandlestickCollector implements Runnable {
     private final BinanceApiRestClient client;
     private final String symbol;
     private final Instant startTime, endTime;
-    private final SqlSessionFactory sqlSessionFactory;
-    private final ModelConverter modelConverter;
+    private final SimulationWriter simulationWriter;
 
     public CandlestickCollector(
             @Nonnull String symbol,
             @Nonnull Instant startTime,
             @Nonnull Instant endTime,
             @Nonnull BinanceApiRestClient client,
-            @Nonnull SqlSessionFactory sqlSessionFactory,
-            @Nonnull ModelConverter modelConverter) {
+            @Nonnull SimulationWriter simulationWriter) {
         this.symbol = symbol;
         this.startTime = startTime;
         this.endTime = endTime;
         this.client = client;
-        this.sqlSessionFactory = sqlSessionFactory;
-        this.modelConverter = modelConverter;
+        this.simulationWriter = simulationWriter;
     }
 
     @Override
@@ -51,17 +50,14 @@ public class CandlestickCollector implements Runnable {
                         nextStartTime.toEpochMilli(),
                         endTime.toEpochMilli());
                 logger.info("Got {} candlesticks for symbol {}", candlesticks.size(), symbol);
-                if (candlesticks.isEmpty()) {
+                OptionalLong maxOpenTime = candlesticks.stream()
+                    .mapToLong(Candlestick::getOpenTime)
+                    .max();
+                if (!maxOpenTime.isPresent()) {
                     break;
                 }
-                try (SqlSession session = sqlSessionFactory.openSession()) {
-                    CandlestickMapper mapper = session.getMapper(CandlestickMapper.class);
-                    for (Candlestick candlestick : candlesticks) {
-                        mapper.insertOrReplace(modelConverter.candlestickToModel(symbol, candlestick));
-                        nextStartTime = Instant.ofEpochMilli(candlestick.getOpenTime() + 1);
-                    }
-                    session.commit();
-                }
+                simulationWriter.writeCandlesticks(symbol, candlesticks);
+                nextStartTime = Instant.ofEpochMilli(maxOpenTime.getAsLong());
                 if (candlesticks.size() < MAX_CANDLESTICKS_PER_CALL) {
                     break;
                 }
