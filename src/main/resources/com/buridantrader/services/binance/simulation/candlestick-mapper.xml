@@ -1,7 +1,7 @@
 <?xml version="1.0" encoding="UTF-8"?>
 <!DOCTYPE mapper PUBLIC "-//mybatis.org//DTd Mapper 3.0//EN" "http://mybatis.org/dtd/mybatis-3-mapper.dtd" >
 
-<mapper namespace="com.buridantrader.services.binance.mappers.CandlestickMapper">
+<mapper namespace="com.buridantrader.services.binance.simulation.mappers.CandlestickMapper">
     <resultMap id="CandlestickResultMap" type="CandlestickModel">
         <result property="symbol" column="symbol"/>
         <result property="openTime" column="open_time"/>
@@ -16,23 +16,26 @@
         <result property="takerBuyBaseAssetVolume" column="taker_buy_base_asset_volume"/>
         <result property="takerBuyQuoteAssetVolume" column="taker_buy_quote_asset_volume"/>
     </resultMap>
-    <!--
-    CREATE TABLE candlestick (
-        symbol VARCHAR,
-        open_time BIGINT,
-        close_time BIGINT,
-        open VARCHAR,
-        close VARCHAR,
-        high VARCHAR,
-        low VARCHAR,
-        volume VARCHAR,
-        quote_asset_volume VARCHAR,
-        number_of_trades BIGINT,
-        taker_buy_base_asset_volume VARCHAR,
-        taker_buy_quote_asset_volume VARCHAR,
-        UNIQUE(symbol, open_time)
-    );
-    -->
+    <insert id="dropTableIfExist">
+        DROP TABLE IF EXISTS candlestick;
+    </insert>
+    <insert id="createTable" timeout = "5">
+        CREATE TABLE candlestick (
+            symbol VARCHAR,
+            open_time BIGINT,
+            close_time BIGINT,
+            open VARCHAR,
+            close VARCHAR,
+            high VARCHAR,
+            low VARCHAR,
+            volume VARCHAR,
+            quote_asset_volume VARCHAR,
+            number_of_trades BIGINT,
+            taker_buy_base_asset_volume VARCHAR,
+            taker_buy_quote_asset_volume VARCHAR,
+            UNIQUE(symbol, open_time)
+        );
+    </insert>
     <insert id="insertOrReplace" useGeneratedKeys="false" timeout="5">
         INSERT OR REPLACE INTO `candlestick` (
             `symbol`,

@@ -1,6 +1,7 @@
-package com.buridantrader.services.binance;
+package com.buridantrader.services.binance.simulation;
 
 import com.binance.api.client.domain.market.Candlestick;
+import com.buridantrader.services.binance.CandlestickModel;
 
 import javax.annotation.Nonnull;
 

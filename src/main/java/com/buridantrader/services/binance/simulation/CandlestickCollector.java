@@ -1,10 +1,9 @@
-package com.buridantrader.services.binance;
+package com.buridantrader.services.binance.simulation;
 
 import com.binance.api.client.BinanceApiRestClient;
 import com.binance.api.client.domain.market.Candlestick;
 import com.binance.api.client.domain.market.CandlestickInterval;
-import com.buridantrader.services.binance.mappers.CandlestickMapper;
-import com.google.common.util.concurrent.RateLimiter;
+import com.buridantrader.services.binance.simulation.mappers.CandlestickMapper;
 import org.apache.ibatis.session.SqlSession;
 import org.apache.ibatis.session.SqlSessionFactory;
 import org.slf4j.Logger;
@@ -18,7 +17,6 @@ public class CandlestickCollector implements Runnable {
 
     private static final Logger logger = LoggerFactory.getLogger(CandlestickCollector.class);
     private static final int MAX_CANDLESTICKS_PER_CALL = 1000;
-    private final RateLimiter rateLimiter;
     private final BinanceApiRestClient client;
     private final String symbol;
     private final Instant startTime, endTime;
@@ -30,14 +28,12 @@ public class CandlestickCollector implements Runnable {
             @Nonnull Instant startTime,
             @Nonnull Instant endTime,
             @Nonnull BinanceApiRestClient client,
-            @Nonnull RateLimiter rateLimiter,
             @Nonnull SqlSessionFactory sqlSessionFactory,
             @Nonnull ModelConverter modelConverter) {
         this.symbol = symbol;
         this.startTime = startTime;
         this.endTime = endTime;
         this.client = client;
-        this.rateLimiter = rateLimiter;
         this.sqlSessionFactory = sqlSessionFactory;
         this.modelConverter = modelConverter;
     }
@@ -48,7 +44,6 @@ public class CandlestickCollector implements Runnable {
         try {
             while (true) {
                 logger.info("Collecting candlesticks for symbol {} from {} to {}", symbol, nextStartTime, endTime);
-                rateLimiter.acquire();
                 List<Candlestick> candlesticks = client.getCandlestickBars(
                         symbol,
                         CandlestickInterval.ONE_MINUTE,
